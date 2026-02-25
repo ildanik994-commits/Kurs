@@ -7,8 +7,8 @@ import hashlib
 from datetime import date, datetime
 import os, io, shutil
 
-from database import engine, Base, get_db
-import models
+from .database import engine, Base, get_db
+from . import models
 
 # Excel / Word export
 from openpyxl import Workbook
