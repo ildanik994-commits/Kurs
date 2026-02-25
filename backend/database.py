@@ -1,21 +1,34 @@
+import os
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 
-# Для удобства разработки и проверки без настройки сервера PostgreSQL 
-# мы пока используем SQLite. Для переключения на PostgreSQL нужно
-# просто изменить строку подключения, например:
-# SQLALCHEMY_DATABASE_URL = "postgresql://user:password@localhost/dbname"
-# Для PostgreSQL используйте такой формат:
-# SQLALCHEMY_DATABASE_URL = "postgresql://username:password@localhost:5432/dbname"
-# Пока оставим SQLite для примера, но вы можете заменить строку ниже на свою:
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:123@localhost:5432/PROEKT"
+# Получаем URL базы из переменной окружения Railway
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is not set")
 
+# Railway иногда отдаёт postgres:// вместо postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# Создание engine
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True  # проверяет соединение перед использованием
+)
+
+# Сессия
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
+
+# Базовый класс моделей
 Base = declarative_base()
 
+# Dependency для FastAPI
 def get_db():
     db = SessionLocal()
     try:
