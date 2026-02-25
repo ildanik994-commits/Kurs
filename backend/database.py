@@ -2,33 +2,41 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-# Получаем URL базы из переменной окружения Railway
+# Сначала пробуем взять готовый DATABASE_URL
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+# Если его нет — собираем вручную из переменных Railway
 if not DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable is not set")
+    PGUSER = os.getenv("PGUSER")
+    POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
+    RAILWAY_PRIVATE_DOMAIN = os.getenv("RAILWAY_PRIVATE_DOMAIN")
+    PGDATABASE = os.getenv("PGDATABASE")
 
-# Railway иногда отдаёт postgres:// вместо postgresql://
+    if not all([PGUSER, POSTGRES_PASSWORD, RAILWAY_PRIVATE_DOMAIN, PGDATABASE]):
+        raise ValueError("PostgreSQL environment variables are not set")
+
+    DATABASE_URL = (
+        f"postgresql://{PGUSER}:{POSTGRES_PASSWORD}"
+        f"@{RAILWAY_PRIVATE_DOMAIN}:5432/{PGDATABASE}"
+    )
+
+# Если вдруг Railway отдаёт postgres://
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# Создание engine
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True  # проверяет соединение перед использованием
+    pool_pre_ping=True
 )
 
-# Сессия
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=engine
 )
 
-# Базовый класс моделей
 Base = declarative_base()
 
-# Dependency для FastAPI
 def get_db():
     db = SessionLocal()
     try:
