@@ -1,0 +1,496 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header mb-5">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h1 class="page-title">Проекты</h1>
+            <p class="page-subtitle">Реестр проектов автоматизации</p>
+        </div>
+        {% if user.role.name in ['head', 'pm'] %}
+        <a href="/projects/new" class="btn-action">
+            <i class="bi bi-plus-lg me-2"></i> Новый проект
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+{% if not projects %}
+<div class="empty-state">
+    <i class="bi bi-folder2-open empty-state-icon"></i>
+    <h5 class="fw-semibold text-dark mt-3">Нет доступных проектов</h5>
+    <p class="text-muted">На текущий момент для вас нет проектов</p>
+</div>
+{% else %}
+
+<!-- Stats Row -->
+{% set total = projects|length %}
+{% set done = projects|selectattr("status.name","equalto","Завершен")|list|length %}
+{% set active = projects|selectattr("status.name","equalto","В работе")|list|length %}
+{% set new_p = projects|selectattr("status.name","equalto","Новый")|list|length %}
+
+<div class="stats-row mb-5">
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-blue"><i class="bi bi-grid-1x2-fill"></i></div>
+        <div class="stat-value">{{ total }}</div>
+        <div class="stat-label">Всего проектов</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-amber"><i class="bi bi-arrow-repeat"></i></div>
+        <div class="stat-value">{{ active }}</div>
+        <div class="stat-label">В работе</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-green"><i class="bi bi-check-circle-fill"></i></div>
+        <div class="stat-value">{{ done }}</div>
+        <div class="stat-label">Завершено</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-sky"><i class="bi bi-stars"></i></div>
+        <div class="stat-value">{{ new_p }}</div>
+        <div class="stat-label">Новых</div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-4 mb-5">
+    <div class="col-md-5">
+        <div class="glass-card p-4 h-100">
+            <div class="section-title mb-4">
+                <i class="bi bi-pie-chart-fill me-2 text-primary"></i>Распределение по статусам
+            </div>
+            <div style="height: 200px;"><canvas id="statusChart"></canvas></div>
+        </div>
+    </div>
+    <div class="col-md-7">
+        <div class="glass-card p-4 h-100">
+            <div class="section-title mb-4">
+                <i class="bi bi-bar-chart-fill me-2 text-primary"></i>Бюджеты проектов
+            </div>
+            <div style="height: 200px;"><canvas id="budgetChart"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        new Chart(document.getElementById('statusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Новый', 'В работе', 'Завершён'],
+                datasets: [{ data: [{{ new_p }}, {{ active }}, {{ done }}], backgroundColor: ['#60a5fa', '#fbbf24', '#34d399'], borderWidth: 0 }]
+        },
+        options: { cutout: '72%', responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { family: 'Inter', size: 12 }, padding: 12 } } } }
+    });
+
+    const budgets = [{% for p in projects[: 6] %}{ { p.planned_budget } }, {% endfor %}];
+    const titles = [{% for p in projects[: 6] %}"{{ p.title|truncate(14, True, '…') }}", {% endfor %}];
+    new Chart(document.getElementById('budgetChart'), {
+        type: 'bar',
+        data: {
+            labels: titles,
+            datasets: [{ label: 'Бюджет (₽)', data: budgets, backgroundColor: 'rgba(37,99,235,0.85)', borderRadius: 8, borderSkipped: false }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { family: 'Inter', size: 11 } } },
+                x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 } } }
+            }
+        }
+    });
+});
+</script>
+
+<!-- Projects Grid -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="section-title"><i class="bi bi-layers me-2 text-primary"></i>Все проекты</div>
+</div>
+
+<div class="row g-4">
+    {% for project in projects %}
+    {% set total_tasks = project.tasks|length %}
+    {% set done_tasks = project.tasks|selectattr("status.name","equalto","Завершено")|list|length %}
+    {% set progress = ((done_tasks / total_tasks * 100)|int) if total_tasks > 0 else 0 %}
+
+    <div class="col-md-6 col-xl-4">
+        <div class="project-card-modern">
+            <!-- Card Top -->
+            <div class="project-card-top">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="project-number">#{{ project.id }}</div>
+                    {% if project.status.name == 'Новый' %}
+                    <span class="status-pill status-new">Новый</span>
+                    {% elif project.status.name == 'В работе' %}
+                    <span class="status-pill status-active"><i class="bi bi-circle-fill me-1"
+                            style="font-size:0.45rem;vertical-align:middle;"></i>В работе</span>
+                    {% elif project.status.name == 'Завершен' %}
+                    <span class="status-pill status-done"><i class="bi bi-check me-1"></i>Завершён</span>
+                    {% else %}
+                    <span class="status-pill status-pause">{{ project.status.name }}</span>
+                    {% endif %}
+                </div>
+
+                <h3 class="project-title">{{ project.title }}</h3>
+                <p class="project-desc">{{ project.description|truncate(80) }}</p>
+            </div>
+
+            <!-- Progress Bar (Taskbar) -->
+            <div class="progress-section">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="progress-label"><i class="bi bi-list-check me-1"></i>Прогресс задач</span>
+                    <span class="progress-pct
+                        {% if progress == 100 %}text-success
+                        {% elif progress > 50 %}text-primary
+                        {% elif progress > 0 %}text-warning
+                        {% else %}text-muted{% endif %}
+                    ">{{ done_tasks }}/{{ total_tasks }}</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill
+                        {% if progress == 100 %}progress-fill-done
+                        {% elif progress > 50 %}progress-fill-active
+                        {% else %}progress-fill-low{% endif %}" style="width: {{ progress }}%;">
+                    </div>
+                </div>
+                <div class="text-end mt-1">
+                    <small class="fw-bold
+                        {% if progress == 100 %}text-success
+                        {% elif progress > 50 %}text-primary
+                        {% else %}text-muted{% endif %}">{{ progress }}%</small>
+                </div>
+            </div>
+
+            <!-- Meta -->
+            <div class="project-meta">
+                <div class="meta-item">
+                    <i class="bi bi-calendar3 meta-icon"></i>
+                    <span>{{ project.start_date.strftime('%d.%m.%Y') }}</span>
+                    {% if project.end_date %}
+                    <span class="text-muted mx-1">→</span>
+                    <span>{{ project.end_date.strftime('%d.%m.%Y') }}</span>
+                    {% else %}
+                    <span class="text-muted ms-1">— в процессе</span>
+                    {% endif %}
+                </div>
+                <div class="meta-item">
+                    <i class="bi bi-cash-stack meta-icon text-emerald"></i>
+                    <span class="fw-semibold">{{ "{:,.0f}".format(project.planned_budget).replace(",", " ") }} ₽</span>
+                </div>
+                <div class="meta-item">
+                    <i class="bi bi-person meta-icon"></i>
+                    <span>{{ project.pm.full_name|truncate(22) if project.pm else '—' }}</span>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="project-card-footer">
+                <a href="/projects/{{ project.id }}" class="btn-card-open">
+                    Открыть <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endif %}
+
+<!-- Inline styles for this page -->
+<style>
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0;
+    }
+
+    .page-subtitle {
+        color: #64748b;
+        margin: 4px 0 0;
+        font-size: 0.9rem;
+    }
+
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        padding: 10px 20px;
+        background: #2563eb;
+        color: #fff;
+        border-radius: 10px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.15s ease;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
+
+    .btn-action:hover {
+        background: #1d4ed8;
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+    }
+
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+
+    .stat-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 20px 24px;
+        border: 1px solid #f1f5f9;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .stat-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+
+    .stat-icon-blue {
+        background: #eff6ff;
+        color: #2563eb;
+    }
+
+    .stat-icon-amber {
+        background: #fffbeb;
+        color: #d97706;
+    }
+
+    .stat-icon-green {
+        background: #f0fdf4;
+        color: #16a34a;
+    }
+
+    .stat-icon-sky {
+        background: #f0f9ff;
+        color: #0284c7;
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .glass-card {
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid #f1f5f9;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    .section-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #374151;
+    }
+
+    /* PROJECT CARD */
+    .project-card-modern {
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+        transition: all 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .project-card-modern:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+        border-color: #cbd5e1;
+    }
+
+    .project-card-top {
+        padding: 22px 22px 16px;
+    }
+
+    .project-number {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #94a3b8;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+
+    .project-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0 0 6px;
+        line-height: 1.35;
+    }
+
+    .project-desc {
+        font-size: 0.82rem;
+        color: #64748b;
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    /* Status pills */
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 4px 12px;
+        border-radius: 50px;
+    }
+
+    .status-new {
+        background: #eff6ff;
+        color: #2563eb;
+    }
+
+    .status-active {
+        background: #fffbeb;
+        color: #b45309;
+    }
+
+    .status-done {
+        background: #f0fdf4;
+        color: #15803d;
+    }
+
+    .status-pause {
+        background: #f8f9fa;
+        color: #6c757d;
+    }
+
+    /* PROGRESS BAR (TASKBAR) */
+    .progress-section {
+        padding: 12px 22px 16px;
+        border-top: 1px solid #f1f5f9;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .progress-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #64748b;
+    }
+
+    .progress-pct {
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .progress-track {
+        height: 8px;
+        background: #f1f5f9;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        border-radius: 999px;
+        transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .progress-fill-done {
+        background: linear-gradient(90deg, #22c55e, #16a34a);
+    }
+
+    .progress-fill-active {
+        background: linear-gradient(90deg, #60a5fa, #2563eb);
+    }
+
+    .progress-fill-low {
+        background: linear-gradient(90deg, #fbbf24, #f59e0b);
+    }
+
+    /* META */
+    .project-meta {
+        padding: 14px 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+        color: #475569;
+    }
+
+    .meta-icon {
+        color: #94a3b8;
+        width: 14px;
+        text-align: center;
+        flex-shrink: 0;
+    }
+
+    .text-emerald {
+        color: #059669 !important;
+    }
+
+    /* CARD FOOTER */
+    .project-card-footer {
+        padding: 14px 22px;
+        background: #f8fafc;
+        border-top: 1px solid #f1f5f9;
+    }
+
+    .btn-card-open {
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #2563eb;
+        text-decoration: none;
+        transition: gap 0.15s ease;
+    }
+
+    .btn-card-open:hover {
+        color: #1d4ed8;
+        gap: 6px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+    }
+
+    .empty-state-icon {
+        font-size: 3.5rem;
+        color: #cbd5e1;
+    }
+
+    @media (max-width: 768px) {
+        .stats-row {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+{% endblock %}

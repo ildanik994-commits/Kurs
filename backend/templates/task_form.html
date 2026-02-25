@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="mb-4">
+    <a href="/tasks" class="back-link"><i class="bi bi-arrow-left me-1"></i>К задачам</a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+
+        <div class="form-page-header mb-5">
+            <div class="form-page-icon">
+                <i class="bi bi-list-check"></i>
+            </div>
+            <div>
+                <h1 class="page-title mb-0">Новая задача</h1>
+                <p class="page-subtitle">Назначение работ по проекту автоматизации</p>
+            </div>
+        </div>
+
+        <div class="glass-card p-5">
+            <form method="post" action="/tasks/new">
+
+                <!-- Title -->
+                <div class="field-group mb-4">
+                    <label class="form-label-modern" for="title">Название задачи <span
+                            class="text-danger">*</span></label>
+                    <div class="input-icon-wrap">
+                        <i class="bi bi-card-text field-icon"></i>
+                        <input type="text" id="title" name="title" class="field-input"
+                            placeholder="Например: Разработка схемы базы данных" required autofocus>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="field-group mb-4">
+                    <label class="form-label-modern" for="description">Описание</label>
+                    <textarea id="description" name="description" class="field-input field-textarea" rows="3"
+                        placeholder="Что именно нужно сделать, критерии приёмки..."></textarea>
+                </div>
+
+                <div class="form-divider mb-4">
+                    <span>Привязка и назначение</span>
+                </div>
+
+                <!-- Project + Assignee -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label-modern" for="project_id">Проект <span
+                                class="text-danger">*</span></label>
+                        <div class="input-icon-wrap">
+                            <i class="bi bi-diagram-3 field-icon"></i>
+                            <select id="project_id" name="project_id" class="field-input field-select" required>
+                                <option value="" disabled {% if not preselect_project %}selected{% endif %}>Выберите
+                                    проект…</option>
+                                {% for p in projects %}
+                                <option value="{{ p.id }}" {% if preselect_project and p.id==preselect_project|int
+                                    %}selected{% endif %}>
+                                    {{ p.title }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-modern" for="assignee_id">Исполнитель <span
+                                class="text-danger">*</span></label>
+                        <div class="input-icon-wrap">
+                            <i class="bi bi-person field-icon"></i>
+                            <select id="assignee_id" name="assignee_id" class="field-input field-select" required>
+                                <option value="" disabled selected>Назначить на…</option>
+                                {% for emp in employees %}
+                                <option value="{{ emp.id }}">{{ emp.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-divider mb-4">
+                    <span>Сроки и стоимость</span>
+                </div>
+
+                <!-- Deadline + Cost -->
+                <div class="row g-3 mb-5">
+                    <div class="col-md-6">
+                        <label class="form-label-modern" for="deadline">Дедлайн <span
+                                class="text-danger">*</span></label>
+                        <div class="input-icon-wrap">
+                            <i class="bi bi-calendar-event field-icon"></i>
+                            <input type="date" id="deadline" name="deadline" class="field-input" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-modern" for="cost">Стоимость (₽)</label>
+                        <div class="input-icon-wrap">
+                            <i class="bi bi-cash-stack field-icon text-success"></i>
+                            <input type="number" id="cost" name="cost" class="field-input" value="0" min="0"
+                                placeholder="0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="/tasks" class="btn-cancel">
+                        <i class="bi bi-x-lg me-2"></i>Отмена
+                    </a>
+                    <button type="submit" class="btn-submit">
+                        <i class="bi bi-plus-circle me-2"></i>Создать задачу
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .back-link {
+        color: #64748b;
+        text-decoration: none;
+        font-size: .85rem;
+        font-weight: 500;
+    }
+
+    .back-link:hover {
+        color: #0f172a;
+    }
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .page-subtitle {
+        color: #64748b;
+        font-size: .875rem;
+        margin: 2px 0 0;
+    }
+
+    .form-page-header {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .form-page-icon {
+        width: 56px;
+        height: 56px;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: #fff;
+        box-shadow: 0 8px 20px rgba(37, 99, 235, .25);
+    }
+
+    .glass-card {
+        background: #fff;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, .05);
+    }
+
+    .field-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-label-modern {
+        font-size: .75rem;
+        font-weight: 700;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: .9px;
+        margin-bottom: 8px;
+    }
+
+    .input-icon-wrap {
+        position: relative;
+    }
+
+    .field-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        font-size: .95rem;
+        z-index: 2;
+        pointer-events: none;
+    }
+
+    .field-textarea+.field-icon,
+    .field-icon.textarea-icon {
+        top: 14px;
+        transform: none;
+    }
+
+    .field-input {
+        width: 100%;
+        padding: 12px 14px 12px 40px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 12px;
+        background: #f8fafc;
+        font-size: .9rem;
+        color: #1e293b;
+        outline: none;
+        transition: all .2s ease;
+        font-family: 'Inter', sans-serif;
+        -webkit-appearance: none;
+    }
+
+    .field-input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, .1);
+        background: #fff;
+    }
+
+    .field-input::placeholder {
+        color: #cbd5e1;
+    }
+
+    .field-textarea {
+        padding-top: 12px;
+        resize: vertical;
+        min-height: 90px;
+    }
+
+    .field-select {
+        cursor: pointer;
+    }
+
+    .form-divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: .72rem;
+        font-weight: 700;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .form-divider::before,
+    .form-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #f1f5f9;
+    }
+
+    .btn-submit {
+        display: inline-flex;
+        align-items: center;
+        padding: 12px 28px;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        font-size: .9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all .15s ease;
+        box-shadow: 0 4px 14px rgba(37, 99, 235, .3);
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(37, 99, 235, .4);
+    }
+
+    .btn-cancel {
+        display: inline-flex;
+        align-items: center;
+        padding: 12px 24px;
+        background: #f1f5f9;
+        color: #64748b;
+        border-radius: 12px;
+        text-decoration: none;
+        font-size: .9rem;
+        font-weight: 600;
+        transition: all .15s ease;
+    }
+
+    .btn-cancel:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-5">
+    <div>
+        <h1 class="page-title">Мой профиль</h1>
+        <p class="page-subtitle">Управление персональными данными</p>
+    </div>
+</div>
+
+{% if request.query_params.get('saved') %}
+<div class="alert-modern alert-success mb-4">
+    <i class="bi bi-check-circle-fill me-2"></i>Данные успешно сохранены
+</div>
+{% endif %}
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="glass-card p-4 text-center">
+            <div class="avatar-large mx-auto mb-3">
+                {{ user.full_name[0].upper() }}
+            </div>
+            <h4 class="fw-bold text-dark mb-1">{{ user.full_name }}</h4>
+            <p class="text-muted small mb-2">@{{ user.username }}</p>
+            <span class="role-badge role-{{ user.role.name }}">
+                {% if user.role.name == 'head' %}Руководитель
+                {% elif user.role.name == 'pm' %}Менеджер проекта
+                {% elif user.role.name == 'employee' %}Исполнитель
+                {% elif user.role.name == 'customer' %}Заказчик
+                {% endif %}
+            </span>
+
+            <hr class="my-4 opacity-10">
+            <div class="text-start d-flex flex-column gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="meta-icon-box"><i class="bi bi-envelope"></i></div>
+                    <div>
+                        <div class="detail-label">Email</div>
+                        <div class="detail-value">{{ user.email or '—' }}</div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="meta-icon-box"><i class="bi bi-telephone"></i></div>
+                    <div>
+                        <div class="detail-label">Телефон</div>
+                        <div class="detail-value">{{ user.phone or '—' }}</div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="meta-icon-box"><i class="bi bi-briefcase"></i></div>
+                    <div>
+                        <div class="detail-label">Должность</div>
+                        <div class="detail-value">{{ user.position or '—' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="glass-card p-4 mb-4">
+            <div class="section-title mb-4"><i class="bi bi-pencil-square me-2 text-primary"></i>Редактировать данные
+            </div>
+            <form method="post" action="/profile">
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label-modern">Полное имя</label>
+                        <input type="text" name="full_name" class="form-control-modern w-100"
+                            value="{{ user.full_name }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-modern">Email</label>
+                        <input type="email" name="email" class="form-control-modern w-100"
+                            value="{{ user.email or '' }}" placeholder="mail@example.com">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-modern">Телефон</label>
+                        <input type="text" name="phone" class="form-control-modern w-100" value="{{ user.phone or '' }}"
+                            placeholder="+7 (999) 000-00-00">
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label-modern">Должность</label>
+                        <input type="text" name="position" class="form-control-modern w-100"
+                            value="{{ user.position or '' }}" placeholder="Разработчик / Менеджер…">
+                    </div>
+                    <div class="col-md-12 mt-2">
+                        <button type="submit" class="btn-action">
+                            <i class="bi bi-save me-2"></i>Сохранить изменения
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        {% if user.role.name == 'employee' %}
+        <div class="glass-card p-4">
+            <div class="section-title mb-4"><i class="bi bi-list-task me-2 text-primary"></i>Мои активные задачи</div>
+            {% set active = user.tasks | selectattr("status.name", "ne", "Выполнено") | list %}
+            {% if not active %}
+            <p class="text-muted text-center py-3">Нет активных задач</p>
+            {% else %}
+            <div class="task-table">
+                <div class="task-table-header" style="grid-template-columns: 2fr 1.5fr 1fr 1fr;">
+                    <div>Задача</div>
+                    <div>Проект</div>
+                    <div>Дедлайн</div>
+                    <div>Статус</div>
+                </div>
+                {% for task in active[:10] %}
+                <div class="task-table-row" style="grid-template-columns: 2fr 1.5fr 1fr 1fr;">
+                    <div class="task-name">{{ task.title }}</div>
+                    <div class="task-meta-cell">{{ task.project.title|truncate(20) }}</div>
+                    <div class="task-meta-cell">{{ task.deadline.strftime('%d.%m.%Y') if task.deadline else '—' }}</div>
+                    <div>
+                        {% if task.status.name == 'В процессе' %}<span class="status-pill status-active"
+                            style="font-size:.7rem;">В процессе</span>
+                        {% else %}<span class="status-pill status-new" style="font-size:.7rem;">К выполнению</span>{%
+                        endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0;
+    }
+
+    .page-subtitle {
+        color: #64748b;
+        margin: 4px 0 0;
+        font-size: 0.9rem;
+    }
+
+    .glass-card {
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .section-title {
+        font-size: 0.875rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .detail-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .8px;
+        color: #94a3b8;
+    }
+
+    .detail-value {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #1e293b;
+    }
+
+    .avatar-large {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #2563eb, #7c3aed);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .meta-icon-box {
+        width: 36px;
+        height: 36px;
+        background: #f1f5f9;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        flex-shrink: 0;
+    }
+
+    .role-badge {
+        display: inline-block;
+        padding: 5px 14px;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .role-head {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .role-pm {
+        background: #eff6ff;
+        color: #1d4ed8;
+    }
+
+    .role-employee {
+        background: #f0fdf4;
+        color: #15803d;
+    }
+
+    .role-customer {
+        background: #fdf2f8;
+        color: #9d174d;
+    }
+
+    .form-label-modern {
+        font-size: .82rem;
+        font-weight: 600;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: .8px;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .form-control-modern {
+        padding: 11px 14px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        background: #f8fafc;
+        font-size: .9rem;
+        color: #1e293b;
+        outline: none;
+        transition: all .2s;
+    }
+
+    .form-control-modern:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, .1);
+        background: #fff;
+    }
+
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        padding: 10px 20px;
+        background: #2563eb;
+        color: #fff;
+        border-radius: 10px;
+        font-size: .875rem;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all .15s;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, .25);
+    }
+
+    .btn-action:hover {
+        background: #1d4ed8;
+        color: #fff;
+    }
+
+    .alert-modern {
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-size: .9rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+    }
+
+    .alert-success {
+        background: #f0fdf4;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+    }
+
+    .task-table {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .task-table-header {
+        display: grid;
+        padding: 10px 14px;
+        background: #f8fafc;
+        border-radius: 10px;
+        font-size: .72rem;
+        font-weight: 700;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: .8px;
+        margin-bottom: 4px;
+    }
+
+    .task-table-row {
+        display: grid;
+        padding: 12px 14px;
+        border-radius: 10px;
+        align-items: center;
+        transition: background .1s;
+    }
+
+    .task-table-row:hover {
+        background: #f8fafc;
+    }
+
+    .task-name {
+        font-size: .85rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .task-meta-cell {
+        font-size: .8rem;
+        color: #64748b;
+    }
+
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        font-size: .75rem;
+        font-weight: 600;
+        padding: 4px 12px;
+        border-radius: 50px;
+    }
+
+    .status-new {
+        background: #eff6ff;
+        color: #2563eb;
+    }
+
+    .status-active {
+        background: #fffbeb;
+        color: #b45309;
+    }
+</style>
+{% endblock %}

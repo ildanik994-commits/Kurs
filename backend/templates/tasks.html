@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-start mb-5">
+    <div>
+        <h1 class="page-title">Задачи</h1>
+        <p class="page-subtitle">Список всех назначенных задач</p>
+    </div>
+    {% if user.role.name in ['head', 'pm'] %}
+    <a href="/tasks/new" class="btn-action">
+        <i class="bi bi-plus-lg me-2"></i>Новая задача
+    </a>
+    {% endif %}
+</div>
+
+{% if not tasks %}
+<div class="empty-state">
+    <i class="bi bi-inbox empty-state-icon"></i>
+    <h5 class="fw-semibold text-dark mt-3">Задач нет</h5>
+    <p class="text-muted">Нет доступных или назначенных вам задач</p>
+</div>
+{% else %}
+
+<!-- Stats -->
+{% set total = tasks|length %}
+{% set done = tasks|selectattr("status.name","equalto","Выполнено")|list|length %}
+{% set in_progress = tasks|selectattr("status.name","equalto","В процессе")|list|length %}
+{% set todo = tasks|selectattr("status.name","equalto","К выполнению")|list|length %}
+
+<div class="stats-row mb-5">
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-blue"><i class="bi bi-list-task"></i></div>
+        <div class="stat-value">{{ total }}</div>
+        <div class="stat-label">Всего задач</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-slate"><i class="bi bi-clock"></i></div>
+        <div class="stat-value">{{ todo }}</div>
+        <div class="stat-label">К выполнению</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-amber"><i class="bi bi-arrow-repeat"></i></div>
+        <div class="stat-value">{{ in_progress }}</div>
+        <div class="stat-label">В процессе</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-green"><i class="bi bi-check-circle-fill"></i></div>
+        <div class="stat-value">{{ done }}</div>
+        <div class="stat-label">Завершено</div>
+    </div>
+</div>
+
+<!-- Task Cards -->
+<div class="row g-3">
+    {% for task in tasks %}
+    <div class="col-md-6 col-xl-4">
+        <div class="task-card-modern {% if task.status.name == 'Выполнено' %}task-card-done{% endif %}">
+            <div class="task-card-body">
+                <!-- Header row -->
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="task-project-chip">
+                        <i class="bi bi-diagram-3 me-1"></i>
+                        {{ task.project.title|truncate(20) }}
+                    </div>
+                    {% if task.status.name == 'Выполнено' %}
+                    <span class="status-pill status-done">✓ Готово</span>
+                    {% elif task.status.name == 'В процессе' %}
+                    <span class="status-pill status-active">В процессе</span>
+                    {% else %}
+                    <span class="status-pill status-new">К выполнению</span>
+                    {% endif %}
+                </div>
+
+                <!-- Title -->
+                <h4 class="task-title">{{ task.title }}</h4>
+                <p class="task-desc">{{ task.description|truncate(70) if task.description else 'Без описания' }}</p>
+
+                <!-- Meta -->
+                <div class="task-meta-row">
+                    {% if user.role.name in ['head', 'pm'] %}
+                    <div class="task-meta-item">
+                        <i class="bi bi-person-circle"></i>
+                        <span>{{ task.assignee.full_name|truncate(18) if task.assignee else 'Не назначен' }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="task-meta-item {% if task.status.name != 'Выполнено' %}text-danger{% endif %}">
+                        <i class="bi bi-calendar-event"></i>
+                        <span>{{ task.deadline.strftime('%d.%m.%Y') if task.deadline else 'Без дедлайна' }}</span>
+                    </div>
+                    {% if task.cost > 0 %}
+                    <div class="task-meta-item">
+                        <i class="bi bi-cash text-success"></i>
+                        <span class="text-success fw-semibold">{{ "{:,.0f}".format(task.cost).replace(",", " ") }}
+                            ₽</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="task-card-footer">
+                {% if task.status.name != 'Выполнено' and (user.role.name in ['head', 'pm'] or task.assignee_id ==
+                user.id) %}
+                <form action="/tasks/{{ task.id }}/complete" method="POST" class="w-100">
+                    <button type="submit" class="btn-complete w-100">
+                        <i class="bi bi-check-circle me-2"></i>Завершить задачу
+                    </button>
+                </form>
+                {% else %}
+                <div class="btn-completed w-100">
+                    <i class="bi bi-check-circle-fill me-2"></i>Задача выполнена
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<style>
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0;
+    }
+
+    .page-subtitle {
+        color: #64748b;
+        margin: 4px 0 0;
+        font-size: 0.9rem;
+    }
+
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        padding: 10px 20px;
+        background: #2563eb;
+        color: #fff;
+        border-radius: 10px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.15s ease;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
+
+    .btn-action:hover {
+        background: #1d4ed8;
+        color: #fff;
+        transform: translateY(-1px);
+    }
+
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+
+    .stat-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 20px 24px;
+        border: 1px solid #f1f5f9;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .stat-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+
+    .stat-icon-blue {
+        background: #eff6ff;
+        color: #2563eb;
+    }
+
+    .stat-icon-slate {
+        background: #f8fafc;
+        color: #475569;
+    }
+
+    .stat-icon-amber {
+        background: #fffbeb;
+        color: #d97706;
+    }
+
+    .stat-icon-green {
+        background: #f0fdf4;
+        color: #16a34a;
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    /* Task Card */
+    .task-card-modern {
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        transition: all 0.2s ease;
+        overflow: hidden;
+    }
+
+    .task-card-modern:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.07);
+        border-color: #cbd5e1;
+    }
+
+    .task-card-done {
+        opacity: 0.75;
+    }
+
+    .task-card-body {
+        padding: 20px;
+        flex: 1;
+    }
+
+    .task-project-chip {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #2563eb;
+        background: #eff6ff;
+        padding: 3px 10px;
+        border-radius: 50px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 140px;
+    }
+
+    .task-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 10px 0 5px;
+        line-height: 1.35;
+    }
+
+    .task-desc {
+        font-size: 0.8rem;
+        color: #64748b;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    .task-meta-row {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        margin-top: 14px;
+    }
+
+    .task-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+        color: #475569;
+    }
+
+    .task-meta-item i {
+        color: #94a3b8;
+        width: 14px;
+        text-align: center;
+    }
+
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 3px 10px;
+        border-radius: 50px;
+        white-space: nowrap;
+    }
+
+    .status-new {
+        background: #eff6ff;
+        color: #2563eb;
+    }
+
+    .status-active {
+        background: #fffbeb;
+        color: #b45309;
+    }
+
+    .status-done {
+        background: #f0fdf4;
+        color: #15803d;
+    }
+
+    .task-card-footer {
+        padding: 14px 20px;
+        background: #f8fafc;
+        border-top: 1px solid #f1f5f9;
+    }
+
+    .btn-complete {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 9px 16px;
+        border: 1.5px solid #2563eb;
+        background: transparent;
+        color: #2563eb;
+        border-radius: 10px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .btn-complete:hover {
+        background: #2563eb;
+        color: #fff;
+    }
+
+    .btn-completed {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 9px 16px;
+        background: #f0fdf4;
+        color: #15803d;
+        border-radius: 10px;
+        font-size: 0.82rem;
+        font-weight: 600;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+    }
+
+    .empty-state-icon {
+        font-size: 3.5rem;
+        color: #cbd5e1;
+    }
+
+    @media (max-width: 768px) {
+        .stats-row {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+{% endblock %}

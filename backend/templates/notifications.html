@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-5">
+    <div>
+        <h1 class="page-title">Уведомления</h1>
+        <p class="page-subtitle">Все системные оповещения</p>
+    </div>
+</div>
+
+{% if not notifs %}
+<div class="empty-state">
+    <i class="bi bi-bell-slash empty-icon"></i>
+    <h5 class="fw-semibold mt-3">Нет уведомлений</h5>
+    <p class="text-muted">Здесь будут отображаться системные оповещения</p>
+</div>
+{% else %}
+<div class="glass-card overflow-hidden">
+    {% for n in notifs %}
+    <a href="{{ n.link or '#' }}" class="notif-item {% if not n.is_read %}notif-unread{% endif %}">
+        <div class="notif-icon {% if not n.is_read %}notif-icon-new{% endif %}">
+            <i class="bi bi-bell{% if not n.is_read %}-fill{% endif %}"></i>
+        </div>
+        <div class="flex-grow-1">
+            <p class="notif-text mb-1">{{ n.message }}</p>
+            <span class="notif-time">{{ n.created_at.strftime('%d.%m.%Y в %H:%M') }}</span>
+        </div>
+        {% if not n.is_read %}
+        <div class="notif-dot"></div>
+        {% endif %}
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+
+<style>
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0;
+    }
+
+    .page-subtitle {
+        color: #64748b;
+        margin: 4px 0 0;
+        font-size: .9rem;
+    }
+
+    .glass-card {
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+    }
+
+    .empty-icon {
+        font-size: 3rem;
+        color: #cbd5e1;
+        display: block;
+        margin-bottom: 12px;
+    }
+
+    .notif-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 20px;
+        border-bottom: 1px solid #f1f5f9;
+        text-decoration: none;
+        color: inherit;
+        transition: background .1s;
+    }
+
+    .notif-item:last-child {
+        border-bottom: none;
+    }
+
+    .notif-item:hover {
+        background: #f8fafc;
+    }
+
+    .notif-unread {
+        background: #eff6ff;
+    }
+
+    .notif-unread:hover {
+        background: #dbeafe;
+    }
+
+    .notif-icon {
+        width: 40px;
+        height: 40px;
+        background: #f1f5f9;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        color: #64748b;
+        flex-shrink: 0;
+    }
+
+    .notif-icon-new {
+        background: #eff6ff;
+        color: #2563eb;
+    }
+
+    .notif-text {
+        font-size: .875rem;
+        font-weight: 500;
+        color: #1e293b;
+        margin: 0;
+    }
+
+    .notif-time {
+        font-size: .75rem;
+        color: #94a3b8;
+    }
+
+    .notif-dot {
+        width: 8px;
+        height: 8px;
+        background: #2563eb;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+</style>
+{% endblock %}

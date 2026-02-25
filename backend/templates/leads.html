@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-5">
+    <div>
+        <h1 class="page-title">Заявки клиентов</h1>
+        <p class="page-subtitle">
+            {% if user.role.name == 'customer' %}Мои заявки на автоматизацию{% else %}Входящие заявки от заказчиков{%
+            endif %}
+        </p>
+    </div>
+    {% if user.role.name == 'customer' %}
+    <button class="btn-action" onclick="document.getElementById('newLeadModal').showModal()">
+        <i class="bi bi-plus-lg me-2"></i>Подать заявку
+    </button>
+    {% endif %}
+</div>
+
+{% if not leads %}
+<div class="empty-state">
+    <i class="bi bi-inbox d-block empty-icon"></i>
+    <h5 class="fw-semibold text-dark mt-3">Заявок пока нет</h5>
+    {% if user.role.name == 'customer' %}
+    <p class="text-muted">Нажмите «Подать заявку», чтобы начать</p>
+    <button class="btn-action mt-2" onclick="document.getElementById('newLeadModal').showModal()">
+        <i class="bi bi-plus-lg me-2"></i>Подать заявку
+    </button>
+    {% else %}
+    <p class="text-muted">Заявки от заказчиков появятся здесь</p>
+    {% endif %}
+</div>
+{% else %}
+<div class="row g-4">
+    {% for lead in leads %}
+    <div class="col-md-6 col-xl-4">
+        <div class="lead-card">
+            <div class="lead-card-top">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="lead-num">#{{ lead.id }}</div>
+                    {% if lead.status == 'Новая' %}<span class="status-pill status-new"><i
+                            class="bi bi-circle-fill me-1"
+                            style="font-size:.4rem;vertical-align:middle;"></i>Новая</span>
+                    {% elif lead.status == 'Одобрена' %}<span class="status-pill status-done"><i
+                            class="bi bi-check me-1"></i>Одобрена</span>
+                    {% elif lead.status == 'Отклонена' %}<span class="status-pill status-pause">Отклонена</span>
+                    {% endif %}
+                </div>
+                <h4 class="lead-title">{{ lead.title }}</h4>
+                <p class="lead-desc">{{ lead.description|truncate(80) if lead.description else '—' }}</p>
+            </div>
+
+            <div class="lead-meta">
+                <div class="meta-row"><i class="bi bi-person meta-icon"></i><span>{{ lead.customer.full_name }}</span>
+                </div>
+                {% if lead.budget > 0 %}<div class="meta-row"><i class="bi bi-cash meta-icon text-success"></i><span
+                        class="fw-semibold text-success">{{ "{:,.0f}".format(lead.budget).replace(",", " ") }} ₽</span>
+                </div>{% endif %}
+                {% if lead.desired_deadline %}<div class="meta-row"><i
+                        class="bi bi-calendar-event meta-icon"></i><span>до {{
+                        lead.desired_deadline.strftime('%d.%m.%Y') }}</span></div>{% endif %}
+                {% if lead.tz_file_path %}
+                <div class="meta-row">
+                    <i class="bi bi-paperclip meta-icon text-primary"></i>
+                    <a href="/static/uploads/{{ lead.tz_file_path }}"
+                        class="text-primary text-decoration-none fw-semibold" style="font-size:.8rem;" download>Скачать
+                        ТЗ</a>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if user.role.name in ['head','pm'] and lead.status == 'Новая' %}
+            <div class="lead-card-footer">
+                <form action="/leads/{{ lead.id }}/approve" method="post" style="flex:1;">
+                    <button type="submit" class="btn-approve w-100"><i
+                            class="bi bi-check-circle me-1"></i>Одобрить</button>
+                </form>
+                <form action="/leads/{{ lead.id }}/reject" method="post" style="flex:1;">
+                    <button type="submit" class="btn-reject w-100"><i class="bi bi-x-circle me-1"></i>Отклонить</button>
+                </form>
+            </div>
+            {% elif lead.status == 'Одобрена' %}
+            <div class="lead-card-footer justify-content-center">
+                <span class="text-success fw-semibold small"><i class="bi bi-check-circle-fill me-1"></i>Проект создан в
+                    системе</span>
+            </div>
+            {% elif lead.status == 'Отклонена' %}
+            <div class="lead-card-footer justify-content-center">
+                <span class="text-danger small"><i class="bi bi-x-circle me-1"></i>Заявка отклонена</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- NEW LEAD MODAL (dialog element) -->
+{% if user.role.name == 'customer' %}
+<dialog id="newLeadModal" class="modal-dialog-custom">
+    <div class="modal-header-custom">
+        <h5 class="fw-bold text-dark mb-0"><i class="bi bi-send-plus me-2 text-primary"></i>Новая заявка на
+            автоматизацию</h5>
+        <button class="modal-close" onclick="document.getElementById('newLeadModal').close()"><i
+                class="bi bi-x-lg"></i></button>
+    </div>
+    <form method="post" action="/leads/new" enctype="multipart/form-data"
+        class="modal-body-custom d-flex flex-column gap-4">
+        <div>
+            <label class="form-label-modern">Название заявки <span class="text-danger">*</span></label>
+            <input type="text" name="title" class="form-control-modern w-100"
+                placeholder="Напр. Автоматизация учёта склада" required>
+        </div>
+        <div>
+            <label class="form-label-modern">Описание и требования</label>
+            <textarea name="description" class="form-control-modern w-100" rows="4"
+                placeholder="Опишите задачу, ожидаемый результат, технические требования…"></textarea>
+        </div>
+        <div class="row g-3">
+            <div class="col-6">
+                <label class="form-label-modern">Бюджет (₽)</label>
+                <input type="number" name="budget" class="form-control-modern w-100" placeholder="0" min="0">
+            </div>
+            <div class="col-6">
+                <label class="form-label-modern">Желаемый срок</label>
+                <input type="date" name="desired_deadline" class="form-control-modern w-100">
+            </div>
+        </div>
+        <div>
+            <label class="form-label-modern">Прикрепить ТЗ (файл)</label>
+            <input type="file" name="tz_file" class="form-control-modern w-100" accept=".pdf,.doc,.docx,.txt,.xlsx">
+            <small class="text-muted mt-1 d-block">PDF, Word, Excel — до 10 МБ</small>
+        </div>
+        <div class="d-flex gap-3 justify-content-end">
+            <button type="button" class="btn-outline-action"
+                onclick="document.getElementById('newLeadModal').close()">Отмена</button>
+            <button type="submit" class="btn-action"><i class="bi bi-send me-2"></i>Подать заявку</button>
+        </div>
+    </form>
+</dialog>
+{% endif %}
+
+<style>
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0;
+    }
+
+    .page-subtitle {
+        color: #64748b;
+        margin: 4px 0 0;
+        font-size: .9rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+    }
+
+    .empty-icon {
+        font-size: 3rem;
+        color: #cbd5e1;
+    }
+
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        padding: 10px 20px;
+        background: #2563eb;
+        color: #fff;
+        border-radius: 10px;
+        font-size: .875rem;
+        font-weight: 600;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        transition: all .15s;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, .25);
+    }
+
+    .btn-action:hover {
+        background: #1d4ed8;
+        color: #fff;
+    }
+
+    .btn-outline-action {
+        display: inline-flex;
+        align-items: center;
+        padding: 9px 18px;
+        background: #fff;
+        color: #374151;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: .85rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .lead-card {
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        transition: all .2s;
+    }
+
+    .lead-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, .07);
+    }
+
+    .lead-card-top {
+        padding: 20px 20px 12px;
+    }
+
+    .lead-num {
+        font-size: .72rem;
+        font-weight: 700;
+        color: #94a3b8;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+
+    .lead-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 8px 0 5px;
+    }
+
+    .lead-desc {
+        font-size: .82rem;
+        color: #64748b;
+        margin: 0;
+    }
+
+    .lead-meta {
+        padding: 12px 20px;
+        border-top: 1px solid #f1f5f9;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1;
+    }
+
+    .meta-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: .8rem;
+        color: #475569;
+    }
+
+    .meta-icon {
+        color: #94a3b8;
+        width: 14px;
+        text-align: center;
+    }
+
+    .lead-card-footer {
+        padding: 14px 20px;
+        background: #f8fafc;
+        border-top: 1px solid #f1f5f9;
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-approve {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 9px 14px;
+        background: #f0fdf4;
+        color: #15803d;
+        border: 1.5px solid #bbf7d0;
+        border-radius: 10px;
+        font-size: .82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all .15s;
+    }
+
+    .btn-approve:hover {
+        background: #dcfce7;
+    }
+
+    .btn-reject {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 9px 14px;
+        background: #fef2f2;
+        color: #dc2626;
+        border: 1.5px solid #fecaca;
+        border-radius: 10px;
+        font-size: .82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all .15s;
+    }
+
+    .btn-reject:hover {
+        background: #fee2e2;
+    }
+
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        font-size: .72rem;
+        font-weight: 600;
+        padding: 4px 12px;
+        border-radius: 50px;
+    }
+
+    .status-new {
+        background: #eff6ff;
+        color: #2563eb;
+    }
+
+    .status-done {
+        background: #f0fdf4;
+        color: #15803d;
+    }
+
+    .status-pause {
+        background: #f1f5f9;
+        color: #64748b;
+    }
+
+    /* Dialog modal */
+    .modal-dialog-custom {
+        width: 540px;
+        max-width: 95vw;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        padding: 0;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, .15);
+        background: #fff;
+    }
+
+    .modal-dialog-custom::backdrop {
+        background: rgba(15, 23, 42, .5);
+        backdrop-filter: blur(4px);
+    }
+
+    .modal-header-custom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 24px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .modal-body-custom {
+        padding: 24px;
+    }
+
+    .modal-close {
+        border: none;
+        background: #f1f5f9;
+        border-radius: 8px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #64748b;
+        transition: all .15s;
+    }
+
+    .modal-close:hover {
+        background: #e2e8f0;
+    }
+
+    .form-label-modern {
+        font-size: .78rem;
+        font-weight: 600;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: .8px;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .form-control-modern {
+        padding: 10px 12px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        background: #f8fafc;
+        font-size: .875rem;
+        color: #1e293b;
+        outline: none;
+        transition: all .2s;
+    }
+
+    .form-control-modern:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, .1);
+        background: #fff;
+    }
+
+    textarea.form-control-modern {
+        resize: vertical;
+    }
+</style>
+{% endblock %}

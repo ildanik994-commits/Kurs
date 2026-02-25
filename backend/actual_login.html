@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Учет проектов автоматизации</title>
+  <!-- Подключаем Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Иконки Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <!-- Chart.js for Dashboards -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="bg-light d-flex" style="min-height: 100vh;">
+
+  
+  <!-- Login layout -->
+  <div class="flex-grow-1 p-0 d-flex align-items-center justify-content-center" style="height: 100vh;">
+    
+<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="col-md-5">
+        <div class="card shadow-lg border-0 rounded-4">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center"
+                        style="width: 70px; height: 70px;">
+                        <i class="bi bi-person-fill" style="font-size: 2rem;"></i>
+                    </div>
+                    <h3 class="mt-3 fw-bold">Вход в систему</h3>
+                    <p class="text-muted">Введите ваши учетные данные</p>
+                </div>
+
+                
+
+                <form method="post" action="/login">
+                    <div class="mb-3">
+                        <label for="username" class="form-label text-secondary fw-semibold">Имя пользователя
+                            (Логин)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i
+                                    class="bi bi-person text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0 ps-0" id="username" name="username"
+                                placeholder="Например: head, pm, emp, cust" required>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="password" class="form-label text-secondary fw-semibold">Пароль</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i
+                                    class="bi bi-lock text-muted"></i></span>
+                            <input type="password" class="form-control border-start-0 ps-0" id="password"
+                                name="password" placeholder="Пароль (123)" required>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-pill fw-bold shadow-sm">Войти <i
+                                class="bi bi-arrow-right-short"></i></button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer bg-light border-0 text-center py-3 rounded-bottom-4">
+                <small class="text-muted">Демонстрационные роли: <br> Руководитель: <b>head</b>, РП: <b>pm</b>,
+                    Сотрудник: <b>emp</b>, Клиент: <b>cust</b> <br>(Пароль для всех: <b>123</b>)</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+  </div>
+  
+
+  <!-- Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/js/scripts.js"></script>
+</body>
+
+</html>
