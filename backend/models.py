@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, DateTime, Boolean, Text
 from sqlalchemy.orm import relationship
 import datetime
-from database import Base
+from .database import Base
 
 # === Tables for Lookups (Dictionaries) ===
 
