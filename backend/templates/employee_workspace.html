@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <h1 class="page-title">Моё рабочее пространство</h1>
+    <p class="text-muted">Персональные задачи, проекты и уведомления</p>
+</div>
+
+<!-- Stats Row -->
+<div class="row g-4 mb-5">
+    <div class="col-md-3">
+        <div class="glass-card p-4 text-center">
+            <div class="text-muted small fw-bold text-uppercase mb-2">Всего задач</div>
+            <div class="h2 fw-800 mb-0">{{ total_tasks }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card p-4 text-center border-bottom border-warning border-4">
+            <div class="text-muted small fw-bold text-uppercase mb-2">В процессе</div>
+            <div class="h2 fw-800 mb-0 text-warning">{{ active_tasks }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card p-4 text-center border-bottom border-danger border-4">
+            <div class="text-muted small fw-bold text-uppercase mb-2">Просрочено</div>
+            <div class="h2 fw-800 mb-0 text-danger">{{ overdue_tasks }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="glass-card p-4 text-center border-bottom border-success border-4">
+            <div class="text-muted small fw-bold text-uppercase mb-2">Выполнено</div>
+            <div class="h2 fw-800 mb-0 text-success">{{ done_tasks }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Active Projects -->
+    <div class="col-lg-8">
+        <div class="glass-card p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0"><i class="bi bi-folder2-open me-2 text-primary"></i>Мои проекты</h5>
+                <a href="/projects" class="btn btn-sm btn-light rounded-pill px-3">Все проекты</a>
+            </div>
+
+            {% if not projects %}
+            <div class="text-center py-5">
+                <i class="bi bi-folder-x text-muted opacity-25" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-2">У вас пока нет активных проектов</p>
+            </div>
+            {% else %}
+            <div class="list-group list-group-flush">
+                {% for p in projects %}
+                <a href="/projects/{{ p.id }}" class="list-group-item list-group-item-action px-0 py-3 border-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-bold text-dark">{{ p.title }}</div>
+                            <div class="text-muted small">Дедлайн: {{ p.end_date.strftime('%d.%m.%Y') if p.end_date else
+                                'не указан' }}</div>
+                        </div>
+                        <span
+                            class="status-badge {% if p.status.name == 'Завершен' %}badge-done{% elif p.status.name == 'В работе' %}badge-process{% else %}badge-new{% endif %}">
+                            {{ p.status.name }}
+                        </span>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Notifications -->
+    <div class="col-lg-4">
+        <div class="glass-card p-4 h-100">
+            <h5 class="fw-bold mb-4"><i class="bi bi-bell me-2 text-warning"></i>Уведомления</h5>
+
+            {% if not notifications %}
+            <div class="text-center py-5">
+                <i class="bi bi-bell-slash text-muted opacity-25" style="font-size: 2.5rem;"></i>
+                <p class="text-muted small mt-2">Новых уведомлений нет</p>
+            </div>
+            {% else %}
+            <div class="notification-feed">
+                {% for n in notifications %}
+                <div class="p-3 mb-2 rounded-4 bg-light shadow-sm position-relative">
+                    <div class="text-muted" style="font-size: 0.65rem;">{{ n.created_at.strftime('%d.%m %H:%M') }}</div>
+                    <div class="small mt-1">{{ n.message|truncate(100) }}</div>
+                    {% if n.link %}
+                    <a href="{{ n.link }}" class="stretched-link"></a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <a href="/notifications"
+                class="btn btn-sm btn-link text-decoration-none w-100 text-center mt-3 text-muted">Смотреть все</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Quick Action for Tasks -->
+<div class="mt-5">
+    <div class="glass-card p-5 text-center bg-orange-gradient text-white border-0 shadow-lg">
+        <h3 class="fw-bold mb-3">Готовы к работе?</h3>
+        <p class="opacity-75 mb-4">Просмотрите свои задачи на сегодня и обновите их статусы</p>
+        <a href="/tasks" class="btn btn-light btn-lg rounded-pill px-5 fw-bold text-orange">ПЕРЕЙТИ К ЗАДАЧАМ</a>
+    </div>
+</div>
+
+<style>
+    .bg-orange-gradient {
+        background: linear-gradient(135deg, var(--primary-orange), #ea580c);
+    }
+
+    .text-orange {
+        color: var(--primary-orange) !important;
+    }
+</style>
+{% endblock %}

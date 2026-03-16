@@ -1,754 +1,344 @@
 {% extends "base.html" %}
+
 {% block content %}
-
-{% set total_tasks = project.tasks|length %}
-{% set done_tasks = project.tasks|selectattr("status.name","equalto","Выполнено")|list|length %}
-{% set progress = ((done_tasks / total_tasks * 100)|int) if total_tasks > 0 else 0 %}
-
-<div class="mb-3">
-    <a href="/projects" class="back-link"><i class="bi bi-arrow-left me-1"></i>К списку проектов</a>
-</div>
-
-<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+<div class="page-header d-flex justify-content-between align-items-start mb-4">
     <div>
-        <div class="d-flex align-items-center gap-3 mb-1 flex-wrap">
-            <h1 class="page-title mb-0">{{ project.title }}</h1>
-            {% if project.status.name == 'Новый' %}<span class="status-pill status-new">Новый</span>
-            {% elif project.status.name == 'В работе' %}<span class="status-pill status-active"><i
-                    class="bi bi-circle-fill me-1" style="font-size:.4rem;vertical-align:middle;"></i>В работе</span>
-            {% elif project.status.name == 'Завершен' %}<span class="status-pill status-done"><i
-                    class="bi bi-check me-1"></i>Завершён</span>
-            {% endif %}
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <a href="/projects/" class="btn btn-sm btn-light border-0 rounded-3 text-muted">
+                <i class="bi bi-arrow-left"></i> Назад
+            </a>
+            <span
+                class="status-badge {% if project.status.name == 'Завершен' %}badge-done{% elif project.status.name == 'В работе' %}badge-process{% else %}badge-new{% endif %}">
+                {{ project.status.name }}
+            </span>
         </div>
-        <p class="page-subtitle">Проект #{{ project.id }} · Начат {{ project.start_date.strftime('%d.%m.%Y') }}</p>
+        <h1 class="page-title">{{ project.title }}</h1>
+        <p class="text-muted mb-0">{{ project.customer.full_name|default(project.customer.username) }} • Менеджер: {{
+            project.pm.full_name|default(project.pm.username) }}</p>
     </div>
-    {% if user.role.name in ['head', 'pm'] %}
-    <div class="d-flex gap-2 flex-wrap">
-        <div class="dropdown">
-            <button class="btn-outline-action dropdown-toggle" data-bs-toggle="dropdown">
-                <i class="bi bi-download me-1"></i>Экспорт
-            </button>
-            <ul class="dropdown-menu shadow border-0 rounded-3 p-2">
-                <li><a class="dropdown-item rounded-2 py-2 text-success fw-semibold"
-                        href="/projects/{{ project.id }}/export/excel"><i
-                            class="bi bi-file-earmark-excel me-2"></i>Excel / Смета</a></li>
-                <li><a class="dropdown-item rounded-2 py-2 text-primary fw-semibold"
-                        href="/projects/{{ project.id }}/export/word"><i class="bi bi-file-earmark-word me-2"></i>Word /
-                        ТЗ</a></li>
-            </ul>
-        </div>
-        <a href="/tasks/new?project_id={{ project.id }}" class="btn-action">
-            <i class="bi bi-plus-lg me-1"></i>Добавить задачу
-        </a>
-    </div>
-    {% endif %}
-</div>
 
-<!-- PROGRESS HERO -->
-<div class="progress-hero mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <div class="fw-bold text-dark" style="font-size:.95rem;">Прогресс выполнения задач</div>
-            <div class="text-muted small">{{ done_tasks }} из {{ total_tasks }} завершено</div>
-        </div>
-        <div
-            class="progress-hero-pct {% if progress==100 %}text-success{% elif progress>60 %}text-primary{% else %}text-warning{% endif %}">
-            {{ progress }}%</div>
-    </div>
-    <div class="progress-hero-track">
-        <div class="progress-hero-fill {% if progress==100 %}fill-done{% elif progress>60 %}fill-main{% else %}fill-low{% endif %}"
-            style="width:{{ progress }}%;"></div>
-    </div>
-    <div class="d-flex justify-content-between mt-2 flex-wrap gap-2">
-        <div class="task-badge task-badge-todo"><i class="bi bi-clock me-1"></i>{{
-            project.tasks|selectattr("status.name","equalto","К выполнению")|list|length }} к выполнению</div>
-        <div class="task-badge task-badge-progress"><i class="bi bi-arrow-repeat me-1"></i>{{
-            project.tasks|selectattr("status.name","equalto","В процессе")|list|length }} в процессе</div>
-        <div class="task-badge task-badge-done"><i class="bi bi-check2 me-1"></i>{{ done_tasks }} завершено</div>
+    <div class="dropdown">
+        <button class="btn btn-white border-0 glass-card p-2 px-3 dropdown-toggle shadow-sm" data-bs-toggle="dropdown">
+            <i class="bi bi-gear-fill me-2 text-muted"></i>Действия
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg rounded-4 p-2 mt-2">
+            <li><a class="dropdown-item rounded-3 py-2" href="/projects/{{ project.id }}/export/excel/"><i
+                        class="bi bi-file-earmark-spreadsheet me-2 text-success"></i>Экспорт в Excel</a></li>
+            <li><a class="dropdown-item rounded-3 py-2" href="/projects/{{ project.id }}/export/word/"><i
+                        class="bi bi-file-earmark-word me-2 text-primary"></i>Сформировать ТЗ (Word)</a></li>
+            <li>
+                <hr class="dropdown-divider">
+            </li>
+            <li><a class="dropdown-item rounded-3 py-2 text-danger" href="#"><i
+                        class="bi bi-archive me-2"></i>Архивировать проект</a></li>
+        </ul>
     </div>
 </div>
 
-<!-- BODY -->
-<div class="row g-4">
-    <!-- Left col -->
+<div class="row g-4 mb-5">
+    <!-- Left: Info -->
     <div class="col-lg-8">
-        <!-- Description -->
-        <div class="glass-card p-4 mb-4">
-            <div class="section-title mb-3"><i class="bi bi-align-left me-2 text-primary"></i>Описание</div>
-            <p class="text-secondary" style="white-space:pre-wrap;font-size:.9rem;line-height:1.7;">{{
-                project.description }}</p>
+        <div class="glass-card mb-4">
+            <h5 class="fw-bold mb-4">Описание проекта</h5>
+            <p class="text-secondary lh-lg">{{ project.description|default("Нет подробного описания.") }}</p>
+
+            <div class="row g-4 mt-2">
+                <div class="col-6 col-md-3">
+                    <span class="text-muted small d-block">Начало</span>
+                    <span class="fw-bold">{{ project.start_date.strftime('%d.%m.%Y') }}</span>
+                </div>
+                <div class="col-6 col-md-3">
+                    <span class="text-muted small d-block">Завершение</span>
+                    <span class="fw-bold">{{ project.end_date.strftime('%d.%m.%Y') if project.end_date else '—'
+                        }}</span>
+                </div>
+                <div class="col-6 col-md-3">
+                    <span class="text-muted small d-block">Бюджет</span>
+                    <span class="fw-bold text-success">{{ "{:,.0f}".format(project.planned_budget)|replace(",", " ") }}
+                        ₽</span>
+                </div>
+                <div class="col-6 col-md-3">
+                    <span class="text-muted small d-block">Затраты</span>
+                    <span class="fw-bold text-danger">{{ "{:,.0f}".format(project.actual_cost)|replace(",", " ") }}
+                        ₽</span>
+                </div>
+            </div>
         </div>
 
-        <!-- Tasks -->
-        <div class="glass-card p-4 mb-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div class="section-title"><i class="bi bi-list-check me-2 text-primary"></i>Задачи проекта</div>
-                <span class="badge bg-light text-dark fw-semibold">{{ total_tasks }}</span>
+        <div class="glass-card">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold m-0">Задачи проекта</h5>
+                <a href="/tasks/new/?project={{ project.id }}"
+                    class="btn btn-sm btn-outline-orange px-3 fw-bold rounded-3">
+                    <i class="bi bi-plus-lg me-1"></i>Новая задача
+                </a>
             </div>
-            {% if not project.tasks %}
-            <div class="text-center py-4 text-muted"><i class="bi bi-inbox fs-2 d-block mb-2 opacity-50"></i>Задач ещё
-                нет</div>
-            {% else %}
-            <div class="task-table">
-                <div class="task-table-header">
-                    <div>Задача</div>
-                    <div>Исполнитель</div>
-                    <div>Дедлайн</div>
-                    <div>Статус</div>
-                </div>
-                {% for task in project.tasks %}
-                <div class="task-table-row">
-                    <div class="task-name">{{ task.title }}</div>
-                    <div class="task-meta-cell"><i class="bi bi-person-circle text-muted me-1"></i>{{
-                        task.assignee.full_name|truncate(18) if task.assignee else '—' }}</div>
-                    <div class="task-meta-cell">{% if task.deadline %}<i class="bi bi-calendar3 text-muted me-1"></i>{{
-                        task.deadline.strftime('%d.%m.%Y') }}{% else %}<span class="text-muted">—</span>{% endif %}
-                    </div>
-                    <div>
-                        {% if task.status.name == 'К выполнению' %}<span class="status-pill status-new"
-                            style="font-size:.7rem;">К выполнению</span>
-                        {% elif task.status.name == 'В процессе' %}<span class="status-pill status-active"
-                            style="font-size:.7rem;">В процессе</span>
-                        {% elif task.status.name == 'Выполнено' %}<span class="status-pill status-done"
-                            style="font-size:.7rem;">Готово</span>
-                        {% else %}<span class="status-pill status-pause" style="font-size:.7rem;">{{ task.status.name
-                            }}</span>{% endif %}
-                    </div>
-                </div>
-                {% endfor %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="small text-muted">
+                        <tr>
+                            <th>ЗАДАЧА</th>
+                            <th>ИСПОЛНИТЕЛЬ</th>
+                            <th class="text-center">СТАТУС</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in project.tasks.all() %}
+                        <tr>
+                            <td>
+                                <div class="fw-bold small">{{ t.title }}</div>
+                                <div class="text-muted x-small">{{ t.deadline.strftime('%d.%m.%Y') if t.deadline else ''
+                                    }}</div>
+                            </td>
+                            <td>
+                                <span class="small">{{ t.assignee.full_name|default(t.assignee.username) }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span
+                                    class="status-badge {% if t.status.name == 'Выполнено' %}badge-done{% elif t.status.name == 'В процессе' %}badge-process{% else %}badge-new{% endif %}"
+                                    style="font-size: 0.65rem;">
+                                    {{ t.status.name }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            {% endif %}
-        </div>
-
-        <!-- Documents -->
-        <div class="glass-card p-4 mb-4">
-            <div class="section-title mb-3"><i class="bi bi-paperclip me-2 text-primary"></i>Документы проекта</div>
-            {% if project.documents %}
-            <div class="d-flex flex-column gap-2 mb-3">
-                {% for doc in project.documents %}
-                <div class="doc-item">
-                    <div class="doc-icon"><i class="bi bi-file-earmark-text"></i></div>
-                    <div class="flex-grow-1">
-                        <div class="fw-semibold" style="font-size:.875rem;">{{ doc.title }}</div>
-                        <div style="font-size:.75rem;color:#94a3b8;">{{ doc.document_type.name }} · {{
-                            doc.author.full_name }} · {{ doc.created_at.strftime('%d.%m.%Y') }}</div>
-                    </div>
-                    {% if doc.file_path %}
-                    <a href="/documents/{{ doc.id }}/download" class="btn-sm-outline"><i
-                            class="bi bi-download me-1"></i>Скачать</a>
-                    {% endif %}
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-
-            {% if user.role.name in ['head','pm','customer'] %}
-            <details class="upload-section">
-                <summary class="section-title" style="cursor:pointer;list-style:none;">
-                    <i class="bi bi-cloud-upload me-2 text-primary"></i>Прикрепить документ / ТЗ
-                </summary>
-                <form method="post" action="/projects/{{ project.id }}/upload" enctype="multipart/form-data"
-                    class="mt-3 d-flex flex-column gap-3">
-                    <input type="text" name="doc_title" class="form-control-modern" placeholder="Название документа"
-                        required>
-                    <select name="doc_type_id" class="form-control-modern">
-                        {% for dt in project.documents %}{% endfor %}
-                    </select>
-                    <input type="file" name="file" class="form-control-modern" required>
-                    <button type="submit" class="btn-action" style="align-self:flex-start;">
-                        <i class="bi bi-upload me-2"></i>Загрузить
-                    </button>
-                </form>
-            </details>
-            {% endif %}
-        </div>
-
-        <!-- CHAT -->
-        <div class="glass-card p-4">
-            <div class="section-title mb-3">
-                <i class="bi bi-chat-dots me-2 text-primary"></i>Переписка по проекту
-                <span class="badge bg-light text-dark fw-semibold ms-2">{{ project.messages|length }}</span>
-            </div>
-
-            <div class="chat-window" id="chatWindow">
-                {% if not project.messages %}
-                <div class="text-center text-muted py-5"><i class="bi bi-chat fs-2 d-block mb-2 opacity-30"></i>Нет
-                    сообщений. Начните диалог!</div>
-                {% else %}
-                {% for msg in project.messages %}
-                {% set is_me = msg.sender_id == user.id %}
-                <div class="chat-msg {% if is_me %}chat-msg-right{% else %}chat-msg-left{% endif %}">
-                    {% if not is_me %}
-                    <div class="chat-avatar">{{ msg.sender.full_name[0].upper() }}</div>
-                    {% endif %}
-                    <div
-                        class="chat-bubble {% if is_me %}bubble-me{% else %}bubble-other{% endif %} {% if msg.is_revision %}bubble-revision{% endif %}">
-                        <div class="chat-sender">
-                            {{ msg.sender.full_name }}
-                            {% if msg.is_revision %}<span class="revision-tag"><i
-                                    class="bi bi-pencil me-1"></i>Правки</span>{% endif %}
-                        </div>
-                        <div class="chat-text">{{ msg.content }}</div>
-                        <div class="chat-time">{{ msg.created_at.strftime('%d.%m %H:%M') }}</div>
-                    </div>
-                    {% if is_me %}
-                    <div class="chat-avatar chat-avatar-me">{{ msg.sender.full_name[0].upper() }}</div>
-                    {% endif %}
-                </div>
-                {% endfor %}
-                {% endif %}
-            </div>
-
-            <form method="post" action="/projects/{{ project.id }}/message" class="chat-form">
-                <input type="text" name="content" class="chat-input" placeholder="Написать сообщение…" required
-                    autocomplete="off">
-                {% if user.role.name == 'customer' %}
-                <label class="revision-check">
-                    <input type="checkbox" name="is_revision" value="true">
-                    <span>Запрос правок</span>
-                </label>
-                {% endif %}
-                <button type="submit" class="btn-send"><i class="bi bi-send-fill"></i></button>
-            </form>
         </div>
     </div>
 
-    <!-- Right col -->
+    <!-- Right: Messaging & Docs -->
     <div class="col-lg-4">
-        <div class="glass-card p-4 mb-4">
-            <div class="section-title mb-4"><i class="bi bi-info-circle me-2 text-primary"></i>Детали проекта</div>
-            <div class="detail-list">
-                <div class="detail-item">
-                    <div class="detail-label">Дата начала</div>
-                    <div class="detail-value">{{ project.start_date.strftime('%d.%m.%Y') }}</div>
-                </div>
-                {% if project.end_date %}<div class="detail-item">
-                    <div class="detail-label">Плановое завершение</div>
-                    <div class="detail-value">{{ project.end_date.strftime('%d.%m.%Y') }}</div>
-                </div>{% endif %}
-                <div class="detail-item">
-                    <div class="detail-label">Бюджет</div>
-                    <div class="detail-value text-success fw-bold">{{
-                        "{:,.0f}".format(project.planned_budget).replace(",", " ") }} ₽</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Менеджер проекта</div>
-                    <div class="detail-value">{{ project.pm.full_name if project.pm else '—' }}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Заказчик</div>
-                    <div class="detail-value">{{ project.customer.full_name if project.customer else '—' }}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Статус</div>
-                    <div class="detail-value">
-                        {% if project.status.name == 'Новый' %}<span class="status-pill status-new">{{
-                            project.status.name }}</span>
-                        {% elif project.status.name == 'В работе' %}<span class="status-pill status-active">{{
-                            project.status.name }}</span>
-                        {% elif project.status.name == 'Завершен' %}<span class="status-pill status-done">{{
-                            project.status.name }}</span>
-                        {% endif %}
+        <div class="glass-card mb-4 d-flex flex-column" style="height: 600px;">
+            <h5 class="fw-bold mb-4"><i class="bi bi-chat-dots me-2 text-warning"></i>Чат проекта</h5>
+
+            <div class="chat-container mb-3 flex-grow-1" style="overflow-y: auto;">
+                {% for m in project.messages.all().order_by('created_at') %}
+                <div class="chat-msg {% if m.sender == user %}msg-me{% else %}msg-other{% endif %} mb-3">
+                    <div class="msg-bubble">
+                        <div class="msg-header">
+                            <span class="sender-name">{{ m.sender.full_name|default(m.sender.username) }}</span>
+                            {% if m.is_revision %}
+                            <span class="badge-fix">ПРАВКИ</span>
+                            {% endif %}
+                        </div>
+                        <div class="msg-text">{{ m.content }}</div>
                     </div>
                 </div>
+                {% endfor %}
+            </div>
+
+            <div class="chat-footer pt-3 border-top">
+                <form action="/projects/{{ project.id }}/message/" method="POST">
+                    {% csrf_token %}
+                    <div class="chat-input-group">
+                        <input type="text" name="content" class="form-control chat-input"
+                            placeholder="Написать в чат..." required autocomplete="off">
+                        <button class="btn-send"><i class="bi bi-send-fill"></i></button>
+                    </div>
+                    <div class="mt-2 text-end">
+                        <label class="fix-checkbox-wrapper cursor-pointer justify-content-end mb-0">
+                            <input type="checkbox" name="is_revision" value="true"
+                                class="form-check-input fix-checkbox m-0">
+                            <span>Это правка</span>
+                        </label>
+                    </div>
+                </form>
             </div>
         </div>
 
-        <!-- Upload doc (short form for sidebar) -->
-        {% if user.role.name in ['head','pm','customer'] %}
-        <div class="glass-card p-4">
-            <div class="section-title mb-3"><i class="bi bi-cloud-upload me-2 text-primary"></i>Загрузить документ</div>
-            <form method="post" action="/projects/{{ project.id }}/upload" enctype="multipart/form-data"
-                class="d-flex flex-column gap-3">
-                <div>
-                    <label class="form-label-modern">Название</label>
-                    <input type="text" name="doc_title" class="form-control-modern w-100" placeholder="Напр. ТЗ v1.0"
-                        required>
+        <div class="glass-card">
+            <h5 class="fw-bold mb-4"><i class="bi bi-folder-fill me-2 text-primary"></i>Документация</h5>
+            {% for doc in project.documents.all() %}
+            <div class="doc-item d-flex align-items-center justify-content-between p-2 mb-2 rounded-3 hover-bg-light">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-file-earmark-text fs-4 text-orange"></i>
+                    <div>
+                        <div class="small fw-bold">{{ doc.title }}</div>
+                        <div class="text-muted x-small">{% if doc.file_path %}{{ doc.file_path.size|filesizeformat }}{%
+                            else %}0 B{% endif %} • {{
+                            doc.created_at.strftime('%d.%m.%Y') }}</div>
+                    </div>
                 </div>
-                <div>
-                    <label class="form-label-modern">Тип</label>
-                    <select name="doc_type_id" class="form-control-modern w-100">
-                        <option value="1">ТЗ</option>
-                        <option value="2">Отчет</option>
-                        <option value="3">Акт</option>
-                        <option value="4">Договор</option>
-                        <option value="5">Правки</option>
-                    </select>
+                <a href="/documents/{{ doc.id }}/download/" class="text-orange"><i class="bi bi-download"></i></a>
+            </div>
+            {% endfor %}
+            <form action="/projects/{{ project.id }}/upload/" method="POST" enctype="multipart/form-data"
+                class="mt-4 border-top pt-4">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <input type="file" name="file" class="form-control form-control-sm border-0 bg-light rounded-3">
                 </div>
-                <div>
-                    <label class="form-label-modern">Файл</label>
-                    <input type="file" name="file" class="form-control-modern w-100" required>
-                </div>
-                <button type="submit" class="btn-action"><i class="bi bi-upload me-2"></i>Загрузить</button>
+                <button class="btn btn-sm btn-modern-primary w-100 py-2">Загрузить файл</button>
             </form>
         </div>
-        {% endif %}
     </div>
 </div>
-
-<script>
-    // Auto-scroll chat to bottom
-    const cw = document.getElementById('chatWindow');
-    if (cw) cw.scrollTop = cw.scrollHeight;
-</script>
 
 <style>
-    .page-title {
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: #0f172a;
+    .x-small {
+        font-size: 0.65rem;
     }
 
-    .page-subtitle {
-        color: #64748b;
-        font-size: .85rem;
-        margin: 0;
+    .btn-outline-orange {
+        border: 1px solid var(--primary-orange);
+        color: var(--primary-orange);
     }
 
-    .back-link {
-        color: #64748b;
-        text-decoration: none;
-        font-size: .85rem;
-        font-weight: 500;
+    .btn-outline-orange:hover {
+        background: var(--primary-orange);
+        color: white;
     }
 
-    .back-link:hover {
-        color: #0f172a;
-    }
-
-    .btn-action {
-        display: inline-flex;
-        align-items: center;
-        padding: 9px 18px;
-        background: #2563eb;
-        color: #fff;
-        border-radius: 10px;
-        font-size: .85rem;
-        font-weight: 600;
-        text-decoration: none;
-        border: none;
-        cursor: pointer;
-        transition: all .15s;
-        box-shadow: 0 4px 12px rgba(37, 99, 235, .25);
-    }
-
-    .btn-action:hover {
-        background: #1d4ed8;
-        color: #fff;
-    }
-
-    .btn-outline-action {
-        display: inline-flex;
-        align-items: center;
-        padding: 9px 18px;
-        background: #fff;
-        color: #374151;
-        border: 1.5px solid #e2e8f0;
-        border-radius: 10px;
-        font-size: .85rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all .15s;
-    }
-
-    .btn-outline-action:hover {
-        background: #f8fafc;
-    }
-
-    .btn-sm-outline {
-        display: inline-flex;
-        align-items: center;
-        padding: 5px 12px;
-        background: transparent;
-        color: #2563eb;
-        border: 1px solid #bfdbfe;
-        border-radius: 8px;
-        font-size: .75rem;
-        font-weight: 600;
-        text-decoration: none;
-        transition: all .15s;
-    }
-
-    .btn-sm-outline:hover {
-        background: #eff6ff;
-    }
-
-    .status-pill {
-        display: inline-flex;
-        align-items: center;
-        font-size: .75rem;
-        font-weight: 600;
-        padding: 4px 12px;
-        border-radius: 50px;
-    }
-
-    .status-new {
-        background: #eff6ff;
-        color: #2563eb;
-    }
-
-    .status-active {
-        background: #fffbeb;
-        color: #b45309;
-    }
-
-    .status-done {
-        background: #f0fdf4;
-        color: #15803d;
-    }
-
-    .status-pause {
-        background: #f8f9fa;
-        color: #6c757d;
-    }
-
-    .progress-hero {
-        background: #fff;
-        border-radius: 16px;
-        border: 1px solid #e2e8f0;
-        padding: 24px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
-    }
-
-    .progress-hero-pct {
-        font-size: 2rem;
-        font-weight: 800;
-        line-height: 1;
-    }
-
-    .progress-hero-track {
-        height: 12px;
-        background: #f1f5f9;
-        border-radius: 999px;
-        overflow: hidden;
-    }
-
-    .progress-hero-fill {
-        height: 100%;
-        border-radius: 999px;
-        transition: width .8s cubic-bezier(.4, 0, .2, 1);
-    }
-
-    .fill-done {
-        background: linear-gradient(90deg, #34d399, #059669);
-    }
-
-    .fill-main {
-        background: linear-gradient(90deg, #60a5fa, #2563eb);
-    }
-
-    .fill-low {
-        background: linear-gradient(90deg, #fcd34d, #d97706);
-    }
-
-    .task-badge {
-        font-size: .75rem;
-        font-weight: 600;
-        padding: 4px 10px;
-        border-radius: 6px;
-    }
-
-    .task-badge-todo {
-        background: #f1f5f9;
-        color: #475569;
-    }
-
-    .task-badge-progress {
-        background: #fffbeb;
-        color: #92400e;
-    }
-
-    .task-badge-done {
-        background: #f0fdf4;
-        color: #15803d;
-    }
-
-    .glass-card {
-        background: #fff;
-        border-radius: 16px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
-    }
-
-    .section-title {
-        font-size: .875rem;
-        font-weight: 700;
-        color: #1e293b;
-    }
-
-    .task-table {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .task-table-header {
-        display: grid;
-        grid-template-columns: 2fr 1.5fr 1.2fr 1fr;
-        padding: 10px 14px;
-        background: #f8fafc;
-        border-radius: 10px;
-        font-size: .72rem;
-        font-weight: 700;
-        color: #94a3b8;
-        text-transform: uppercase;
-        letter-spacing: .8px;
-        margin-bottom: 4px;
-    }
-
-    .task-table-row {
-        display: grid;
-        grid-template-columns: 2fr 1.5fr 1.2fr 1fr;
-        padding: 12px 14px;
-        border-radius: 10px;
-        align-items: center;
-        transition: background .1s;
-    }
-
-    .task-table-row:hover {
-        background: #f8fafc;
-    }
-
-    .task-name {
-        font-size: .85rem;
-        font-weight: 600;
-        color: #1e293b;
-    }
-
-    .task-meta-cell {
-        font-size: .8rem;
-        color: #64748b;
-    }
-
-    .detail-list {
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-    }
-
-    .detail-item {
-        display: flex;
-        flex-direction: column;
-        gap: 3px;
-        padding-bottom: 14px;
-        border-bottom: 1px solid #f1f5f9;
-    }
-
-    .detail-item:last-child {
-        border-bottom: none;
-        padding-bottom: 0;
-    }
-
-    .detail-label {
-        font-size: .7rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: .8px;
-        color: #94a3b8;
-    }
-
-    .detail-value {
-        font-size: .875rem;
-        font-weight: 500;
-        color: #1e293b;
-    }
-
-    .doc-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 12px;
-        background: #f8fafc;
-        border-radius: 10px;
-        border: 1px solid #f1f5f9;
-    }
-
-    .doc-icon {
-        width: 36px;
-        height: 36px;
-        background: #eff6ff;
-        color: #2563eb;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1rem;
-        flex-shrink: 0;
-    }
-
-    .form-label-modern {
-        font-size: .78rem;
-        font-weight: 600;
-        color: #475569;
-        text-transform: uppercase;
-        letter-spacing: .8px;
-        margin-bottom: 6px;
-        display: block;
-    }
-
-    .form-control-modern {
-        padding: 10px 12px;
-        border: 1.5px solid #e2e8f0;
-        border-radius: 10px;
-        background: #f8fafc;
-        font-size: .875rem;
-        color: #1e293b;
-        outline: none;
-        transition: all .2s;
-    }
-
-    .form-control-modern:focus {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, .1);
-        background: #fff;
-    }
-
-    /* CHAT */
-    .chat-window {
-        height: 320px;
-        overflow-y: auto;
+    .chat-container {
         display: flex;
         flex-direction: column;
         gap: 12px;
-        padding: 8px 0;
-        margin-bottom: 16px;
+        padding-right: 8px;
+        /* Push messages to the bottom */
+        justify-content: flex-end;
+        min-height: 0;
     }
 
     .chat-msg {
         display: flex;
-        align-items: flex-end;
-        gap: 8px;
+        flex-direction: column;
+        max-width: 90%;
     }
 
-    .chat-msg-right {
-        flex-direction: row-reverse;
+    .msg-me {
+        align-self: flex-end;
     }
 
-    .chat-avatar {
-        width: 30px;
-        height: 30px;
-        border-radius: 8px;
-        background: linear-gradient(135deg, #2563eb, #7c3aed);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        font-size: .75rem;
-        font-weight: 700;
-        flex-shrink: 0;
+    .msg-other {
+        align-self: flex-start;
     }
 
-    .chat-avatar-me {
-        background: linear-gradient(135deg, #059669, #10b981);
+    .msg-bubble {
+        padding: 12px 16px;
+        border-radius: 18px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        position: relative;
     }
 
-    .chat-bubble {
-        max-width: 75%;
-        padding: 10px 14px;
-        border-radius: 14px;
-    }
-
-    .bubble-other {
-        background: #f1f5f9;
-        border-bottom-left-radius: 4px;
-    }
-
-    .bubble-me {
-        background: #eff6ff;
+    .msg-me .msg-bubble {
+        background: #fff7ed;
+        border: 1px solid #ffedd5;
         border-bottom-right-radius: 4px;
+        color: #7c2d12;
     }
 
-    .bubble-revision {
-        background: #fef3c7;
-        border: 1px solid #fcd34d;
+    .msg-other .msg-bubble {
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+        border-bottom-left-radius: 4px;
+        color: #1e293b;
     }
 
-    .chat-sender {
-        font-size: .7rem;
-        font-weight: 700;
-        color: #64748b;
-        margin-bottom: 3px;
+    .msg-header {
         display: flex;
         align-items: center;
-        gap: 6px;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 4px;
     }
 
-    .chat-text {
-        font-size: .85rem;
-        color: #1e293b;
+    .sender-name {
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        opacity: 0.8;
+    }
+
+    .badge-fix {
+        background: #ef4444;
+        color: white;
+        font-size: 0.55rem;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .msg-text {
+        font-size: 0.9rem;
         line-height: 1.5;
     }
 
-    .chat-time {
-        font-size: .68rem;
-        color: #94a3b8;
-        margin-top: 4px;
-    }
-
-    .revision-tag {
-        display: inline-flex;
-        align-items: center;
-        background: #fef3c7;
-        color: #92400e;
-        font-size: .65rem;
-        font-weight: 600;
-        padding: 2px 8px;
-        border-radius: 50px;
-    }
-
-    .chat-form {
+    .chat-input-group {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 4px;
         display: flex;
         align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
+        transition: all 0.2s;
+    }
+
+    .chat-input-group:focus-within {
+        border-color: var(--primary-orange);
+        background: white;
+        box-shadow: 0 0 0 4px rgba(251, 146, 60, 0.1);
     }
 
     .chat-input {
-        flex: 1;
-        min-width: 160px;
-        padding: 10px 14px;
-        border: 1.5px solid #e2e8f0;
-        border-radius: 12px;
-        font-size: .875rem;
-        outline: none;
-        background: #f8fafc;
-    }
-
-    .chat-input:focus {
-        border-color: #3b82f6;
-        background: #fff;
-    }
-
-    .revision-check {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: .78rem;
-        color: #64748b;
-        font-weight: 500;
-        cursor: pointer;
+        border: none !important;
+        background: transparent !important;
+        padding: 10px 16px;
+        box-shadow: none !important;
+        font-size: 0.9rem;
     }
 
     .btn-send {
+        background: var(--primary-orange);
+        color: white;
         width: 40px;
         height: 40px;
-        background: #2563eb;
-        color: #fff;
-        border: none;
-        border-radius: 10px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        cursor: pointer;
-        flex-shrink: 0;
-        transition: all .15s;
+        border: none;
+        transition: all 0.2s;
     }
 
     .btn-send:hover {
-        background: #1d4ed8;
+        background: #ea580c;
+        transform: scale(1.05);
     }
 
-    .upload-section summary::-webkit-details-marker {
-        display: none;
+    .fix-checkbox-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 4px;
+        color: #64748b;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .fix-checkbox {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        border: 2px solid #cbd5e1;
+        cursor: pointer;
+    }
+
+    .fix-checkbox:checked {
+        background-color: #ef4444;
+        border-color: #ef4444;
     }
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const container = document.querySelector('.chat-container');
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
+    });
+</script>
 {% endblock %}

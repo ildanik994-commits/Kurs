@@ -1,0 +1,112 @@
+erDiagram
+    %% Lookup Tables
+    Role ||--o{ User : "defines role"
+    ProjectStatus ||--o{ Project : "current status"
+    TaskStatus ||--o{ Task : "current state"
+    TaskStatus ||--o{ TaskHistory : "old status"
+    TaskStatus ||--o{ TaskHistory : "new status"
+    DocumentType ||--o{ Document : "type"
+    BudgetCategory ||--o{ ProjectBudgetItem : "category"
+
+    %% Main Entities
+    User ||--o{ Project : "customer"
+    User ||--o{ Project : "project manager"
+    User ||--o{ Task : "assignee"
+    User ||--o{ WorkLog : "logs time"
+    User ||--o{ Document : "author"
+    User ||--o{ Comment : "posted by"
+    User ||--o{ ProjectMessage : "sender"
+    User ||--o{ TaskHistory : "changed by"
+    User ||--o{ Lead : "customer"
+    User ||--o{ Notification : "received by"
+    User ||--o{ SystemLog : "actor"
+
+    Project ||--o{ ProjectStage : "has stages"
+    Project ||--o{ Task : "has tasks"
+    Project ||--o{ Document : "has documents"
+    Project ||--o{ ProjectMessage : "chat history"
+    Project ||--o{ ProjectBudgetItem : "budget split"
+
+    ProjectStage ||--o{ Task : "stage tasks"
+    
+    Task ||--o{ WorkLog : "logs"
+    Task ||--o{ Comment : "discussion"
+    Task ||--o{ TaskHistory : "audit logs"
+
+    User {
+        string username
+        string full_name
+        string email
+        string position
+        string phone
+        string avatar_url
+    }
+
+    Project {
+        string title
+        text description
+        date start_date
+        date end_date
+        float planned_budget
+        float actual_cost
+    }
+
+    Task {
+        string title
+        text description
+        date deadline
+        float cost
+    }
+
+    ProjectStage {
+        string name
+        date start_date
+        date end_date
+    }
+
+    WorkLog {
+        float hours
+        date log_date
+    }
+
+    Document {
+        string title
+        file file_path
+        datetime created_at
+    }
+
+    ProjectMessage {
+        text content
+        bool is_revision
+        datetime created_at
+    }
+
+    Lead {
+        string title
+        text description
+        float budget
+        date desired_deadline
+        string status
+        file tz_file_path
+    }
+
+    Notification {
+        text message
+        string link
+        bool is_read
+        datetime created_at
+    }
+
+    ProjectBudgetItem {
+        float planned_amount
+        float actual_amount
+    }
+
+    TaskHistory {
+        datetime changed_at
+    }
+
+    SystemLog {
+        text action
+        datetime created_at
+    }

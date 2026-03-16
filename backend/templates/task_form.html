@@ -19,7 +19,8 @@
         </div>
 
         <div class="glass-card p-5">
-            <form method="post" action="/tasks/new">
+            <form method="post" action="/tasks/new/">
+                {% csrf_token %}
 
                 <!-- Title -->
                 <div class="field-group mb-4">

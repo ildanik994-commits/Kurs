@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<!-- Frappe Gantt JS/CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css">
+<script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
+<style>
+    .gantt-container {
+        background: white;
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 4px 20px -5px rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+    }
+
+    /* Customizing Frappe Gantt Styles to match our orange theme */
+    .gantt .bar-progress {
+        fill: var(--primary-orange) !important;
+    }
+
+    .gantt .bar {
+        fill: #fed7aa !important;
+    }
+
+    .gantt .bar-label {
+        fill: #475569 !important;
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    .gantt .grid-header {
+        fill: #f8fafc !important;
+        stroke: #e2e8f0 !important;
+    }
+
+    .gantt .grid-row {
+        fill: #ffffff !important;
+    }
+
+    .gantt .grid-row:nth-child(even) {
+        fill: #fcfcfc !important;
+    }
+
+    .gantt .lower-text {
+        fill: #64748b !important;
+    }
+
+    .view-toggle {
+        background: white;
+        padding: 4px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        display: inline-flex;
+    }
+
+    .toggle-btn {
+        padding: 8px 16px;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-decoration: none;
+        color: #64748b;
+        transition: all 0.2s;
+    }
+
+    .toggle-btn.active {
+        background: var(--primary-orange);
+        color: white;
+    }
+
+    .controls-bar {
+        background: #f1f5f9;
+        padding: 8px;
+        border-radius: 12px;
+        display: inline-flex;
+        gap: 8px;
+    }
+
+    .control-btn {
+        padding: 6px 14px;
+        border: none;
+        background: white;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #475569;
+        transition: all 0.2s;
+    }
+
+    .control-btn:hover {
+        background: #e2e8f0;
+    }
+
+    .control-btn.active {
+        background: #0f172a;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="page-title">Сроки проектов</h1>
+        <p class="text-muted mb-0">Календарное планирование и контроль этапов</p>
+    </div>
+    <div class="d-flex gap-3 align-items-center">
+        <div class="view-toggle">
+            <a href="/projects/" class="toggle-btn"><i class="bi bi-grid-1x2-fill me-2"></i>Дашборд</a>
+            <a href="/projects/gantt/" class="toggle-btn active"><i class="bi bi-calendar-range me-2"></i>Диаграмма</a>
+        </div>
+        {% if user.role.name in ['head', 'pm'] %}
+        <a href="/projects/new/" class="btn-modern-primary">
+            <i class="bi bi-plus-lg me-2"></i>Новый проект
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="glass-card p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="controls-bar">
+            <button class="control-btn active" data-view="Week">Неделя</button>
+            <button class="control-btn" data-view="Month">Месяц</button>
+            <button class="control-btn" data-view="Year">Год</button>
+        </div>
+        <div class="text-muted small">
+            <i class="bi bi-info-circle me-1"></i> Нажмите на проект для деталей
+        </div>
+    </div>
+
+    <div id="gantt-chart" class="gantt-target"></div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const rawData = {{ projects_json| safe
+    }};
+
+    if (rawData.length === 0) {
+        document.getElementById('gantt-chart').innerHTML = `
+                <div class="text-center py-5">
+                    <i class="bi bi-calendar-x text-muted opacity-25" style="font-size: 4rem;"></i>
+                    <h5 class="mt-3 text-muted">Нет активных проектов для отображения</h5>
+                </div>
+            `;
+        return;
+    }
+
+    const gantt = new Gantt("#gantt-chart", rawData, {
+        view_mode: 'Week',
+        language: 'ru',
+        custom_popup_html: function (task) {
+            return `
+                    <div class="p-3" style="width: 250px;">
+                        <div class="fw-bold mb-1">${task.name}</div>
+                        <div class="text-muted small mb-2">${task.start} - ${task.end}</div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-orange" style="width: ${task.progress}%"></div>
+                        </div>
+                        <div class="mt-2 small">Завершено: <b>${task.progress}%</b></div>
+                    </div>
+                `;
+        },
+        on_click: function (task) {
+            window.location.href = `/projects/${task.id}/`;
+        }
+    });
+
+    // View Mode Controls
+    document.querySelectorAll('.control-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            gantt.change_view_mode(this.getAttribute('data-view'));
+        });
+    });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,60 @@
+classDiagram
+    class User {
+        +String username
+        +String full_name
+        +String position
+        +check_password(raw_password)
+        +get_full_name()
+    }
+
+    class Project {
+        +String title
+        +Float planned_budget
+        +get_completion_percentage()
+        +get_actual_cost()
+        +update_status(new_status)
+    }
+
+    class Task {
+        +String title
+        +Date deadline
+        +change_assignee(new_user)
+        +mark_as_done()
+        +add_comment(content)
+    }
+
+    class Lead {
+        +String title
+        +Float budget
+        +convert_to_project()
+        +reject_lead()
+    }
+
+    class Document {
+        +String title
+        +File file_path
+        +download()
+    }
+
+    class Notification {
+        +String message
+        +Boolean is_read
+        +mark_as_read()
+        +send_telegram_alert()
+    }
+
+    class AIS_Service {
+        +login(credentials)
+        +generate_excel_report()
+        +generate_word_document()
+        +export_gantt_chart()
+    }
+
+    User "1" --> "0..*" Project : "is customer/PM"
+    User "1" --> "0..*" Task : "is assignee"
+    Project "1" *-- "0..*" Task : "contains"
+    Project "1" *-- "0..*" Document : "has"
+    Task "1" *-- "0..*" Comment : "has discussions"
+    AIS_Service ..> Project : "manages"
+    AIS_Service ..> User : "authenticates"
+    AIS_Service ..> Lead : "processes"

@@ -4,201 +4,424 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ title | default("ИС Учёта проектов автоматизации") }}</title>
+  <title>{{ title | default("ИС Учета Проектов") }}</title>
+  <!-- Modern Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <!-- Bootstrap & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
   <style>
+    :root {
+      --primary-orange: #f97316;
+      --primary-orange-hover: #ea580c;
+      --sidebar-width: 280px;
+      --sidebar-collapsed-width: 80px;
+      --bg-color: #f8fafc;
+      --sidebar-bg: #ffffff;
+      --transition-speed: 0.3s;
+      --glass-shadow: 0 4px 20px -5px rgba(15, 23, 42, 0.08);
+      --card-radius: 20px;
+    }
+
     body {
-      font-family: 'Inter', sans-serif;
-    }
-  </style>
-</head>
-
-<body style="background:#f8fafc;">
-
-  {% if request.cookies.get('user_id') %}
-  <div class="d-flex" style="min-height: 100vh;">
-
-    <!-- SIDEBAR -->
-    <aside id="sidebar" style="
-        width: 260px; min-height: 100vh;
-        background: #0f172a;
-        display: flex; flex-direction: column;
-        padding: 0; flex-shrink: 0;
-        position: sticky; top: 0; height: 100vh; overflow-y: auto;
-    ">
-      <!-- Brand -->
-      <div style="padding: 20px 20px 16px;">
-        <a href="/projects" class="text-decoration-none d-flex align-items-center gap-3">
-          <div
-            style="width:40px;height:40px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-            <i class="bi bi-gear-wide-connected text-white" style="font-size:1.2rem;"></i>
-          </div>
-          <div>
-            <div class="text-white fw-bold" style="font-size:.95rem;line-height:1.2;">ИС Проектов</div>
-            <div style="font-size:.65rem;color:#475569;text-transform:uppercase;letter-spacing:1px;">Automation</div>
-          </div>
-        </a>
-      </div>
-
-      <div style="height:1px;background:#1e293b;margin:0 16px;"></div>
-
-      <!-- Nav -->
-      <nav style="padding:16px 12px;flex:1;">
-        <div class="sidebar-label">Навигация</div>
-        <a href="/projects"
-          class="sidebar-link {% if '/projects' in request.url.path and '/projects/' not in request.url.path %}sidebar-link-active{% endif %}">
-          <i class="bi bi-grid-1x2-fill sidebar-icon"></i><span>Проекты</span>
-        </a>
-        <a href="/tasks" class="sidebar-link {% if '/tasks' in request.url.path %}sidebar-link-active{% endif %}">
-          <i class="bi bi-list-check sidebar-icon"></i><span>Задачи</span>
-        </a>
-        <a href="/leads" class="sidebar-link {% if '/leads' in request.url.path %}sidebar-link-active{% endif %}">
-          <i class="bi bi-chat-dots-fill sidebar-icon"></i><span>Заявки клиентов</span>
-        </a>
-        <a href="/notifications"
-          class="sidebar-link {% if '/notifications' in request.url.path %}sidebar-link-active{% endif %}"
-          id="notif-link">
-          <i class="bi bi-bell sidebar-icon"></i>
-          <span>Уведомления</span>
-          <span id="notif-badge" class="notif-badge d-none"></span>
-        </a>
-
-        {% if request.cookies.get('user_role') in ['head', 'pm'] %}
-        <div class="sidebar-label mt-4">Управление</div>
-        <a href="/users" class="sidebar-link {% if '/users' in request.url.path %}sidebar-link-active{% endif %}">
-          <i class="bi bi-people-fill sidebar-icon"></i><span>Команда / Загрузка</span>
-        </a>
-        {% endif %}
-      </nav>
-
-      <div style="height:1px;background:#1e293b;margin:0 16px;"></div>
-
-      <!-- User -->
-      <div style="padding:14px 12px;">
-        <div class="dropdown">
-          <a href="#" data-bs-toggle="dropdown"
-            class="text-decoration-none d-flex align-items-center gap-3 p-2 rounded-3"
-            style="transition:background .2s;" onmouseover="this.style.background='#1e293b'"
-            onmouseout="this.style.background='transparent'">
-            <div
-              style="width:36px;height:36px;background:linear-gradient(135deg,#2563eb,#7c3aed);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;color:white;font-size:.9rem;flex-shrink:0;">
-              {{ request.cookies.get('user_role')[0].upper() if request.cookies.get('user_role') else 'U' }}
-            </div>
-            <div class="flex-grow-1 overflow-hidden">
-              <div class="text-white fw-semibold text-truncate" style="font-size:.85rem;">{{
-                request.cookies.get('user_role') }}</div>
-              <div style="font-size:.7rem;color:#64748b;">Рабочая сессия</div>
-            </div>
-            <i class="bi bi-chevron-up" style="color:#64748b;font-size:.7rem;"></i>
-          </a>
-          <ul class="dropdown-menu dropdown-menu-dark shadow-lg border-0 rounded-3 p-2"
-            style="background:#1e293b;min-width:200px;">
-            <li><a class="dropdown-item rounded-2 py-2" href="/profile"><i class="bi bi-person me-2"></i>Мой профиль</a>
-            </li>
-            <li><a class="dropdown-item rounded-2 py-2" href="/notifications"><i
-                  class="bi bi-bell me-2"></i>Уведомления</a></li>
-            <li>
-              <hr class="dropdown-divider" style="border-color:#334155;">
-            </li>
-            <li><a class="dropdown-item rounded-2 py-2 text-danger fw-semibold" href="/logout"><i
-                  class="bi bi-box-arrow-right me-2"></i>Выйти</a></li>
-          </ul>
-        </div>
-      </div>
-    </aside>
-
-    <!-- MAIN -->
-    <main style="flex:1;background:#f8fafc;overflow-y:auto;min-height:100vh;">
-      <div class="p-4 p-xl-5">
-        {% block content %}{% endblock %}
-      </div>
-    </main>
-  </div>
-
-  {% else %}
-  <div style="min-height:100vh;display:flex;">
-    {% block login_content %}{% endblock %}
-  </div>
-  {% endif %}
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="/static/js/scripts.js"></script>
-
-  {% if request.cookies.get('user_id') %}
-  <script>
-    // Poll notifications badge
-    async function updateBadge() {
-      try {
-        const r = await fetch('/api/notifications/count');
-        const d = await r.json();
-        const badge = document.getElementById('notif-badge');
-        if (d.count > 0) { badge.textContent = d.count; badge.classList.remove('d-none'); }
-        else { badge.classList.add('d-none'); }
-      } catch (e) { }
-    }
-    updateBadge();
-    setInterval(updateBadge, 30000);
-  </script>
-  {% endif %}
-
-  <style>
-    .sidebar-label {
-      font-size: .65rem;
-      font-weight: 600;
-      color: #475569;
-      letter-spacing: 1.2px;
-      text-transform: uppercase;
-      padding: 0 12px;
-      margin-bottom: 8px;
+      background-color: var(--bg-color);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: #1e293b;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
     }
 
-    .sidebar-link {
+    /* --- SIDEBAR --- */
+    .sidebar {
+      width: var(--sidebar-width);
+      height: 100vh;
+      background: var(--sidebar-bg);
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1050;
+      border-right: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      transition: width var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .sidebar.collapsed {
+      width: var(--sidebar-collapsed-width);
+    }
+
+    .sidebar-brand {
+      padding: 24px;
+      height: 80px;
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 10px 12px;
-      border-radius: 10px;
+      gap: 16px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary-orange), #ea580c);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+    }
+
+    .brand-name {
+      font-weight: 800;
+      font-size: 1.25rem;
+      color: #0f172a;
+      transition: opacity 0.2s;
+    }
+
+    .sidebar.collapsed .brand-name {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .nav-container {
+      flex: 1;
+      padding: 20px 16px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: none;
+      /* Firefox */
+    }
+
+    .nav-container::-webkit-scrollbar {
+      display: none;
+      /* Chrome/Safari */
+    }
+
+    .nav-label {
+      padding: 12px 14px 8px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      transition: opacity 0.2s;
+    }
+
+    .sidebar.collapsed .nav-label {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 14px;
       color: #64748b;
-      text-decoration: none;
-      font-size: .875rem;
       font-weight: 500;
+      border-radius: 14px;
+      text-decoration: none !important;
       margin-bottom: 4px;
-      transition: all .15s ease;
+      white-space: nowrap;
+      transition: all 0.2s;
       position: relative;
     }
 
-    .sidebar-link:hover {
-      background: #1e293b;
-      color: #e2e8f0;
-    }
-
-    .sidebar-link-active {
-      background: #1e3a5f;
-      color: #60a5fa !important;
-    }
-
-    .sidebar-icon {
-      font-size: 1rem;
-      width: 20px;
-      text-align: center;
+    .nav-link i {
+      font-size: 1.3rem;
       flex-shrink: 0;
     }
 
-    .notif-badge {
-      background: #ef4444;
+    .nav-link span {
+      opacity: 1;
+      transition: opacity 0.2s;
+    }
+
+    .sidebar.collapsed .nav-link span {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .nav-link:hover {
+      background-color: #f1f5f9;
+      color: var(--primary-orange);
+    }
+
+    .nav-link.active {
+      background-color: var(--primary-orange);
       color: #fff;
-      font-size: .65rem;
+      box-shadow: 0 8px 16px -4px rgba(249, 115, 22, 0.3);
+    }
+
+    .sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid #f1f5f9;
+    }
+
+    .collapse-btn {
+      width: 100%;
+      height: 44px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .sidebar.collapsed .collapse-btn i {
+      transform: rotate(180deg);
+    }
+
+    /* --- MAIN CONTENT --- */
+    .main-content {
+      margin-left: var(--sidebar-width);
+      padding: 32px 48px;
+      transition: margin-left var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+      max-width: 1600px;
+    }
+
+    body.sidebar-collapsed .main-content {
+      margin-left: var(--sidebar-collapsed-width);
+    }
+
+    /* --- COMPONENTS --- */
+    .glass-card {
+      background: #ffffff;
+      border-radius: var(--card-radius);
+      border: 1px solid #eef2f6;
+      padding: 24px;
+      box-shadow: var(--glass-shadow);
+      height: 100%;
+    }
+
+    .page-header {
+      margin-bottom: 32px;
+    }
+
+    .page-title {
+      font-weight: 800;
+      font-size: 1.85rem;
+      letter-spacing: -0.02em;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 0.75rem;
       font-weight: 700;
-      padding: 2px 6px;
-      border-radius: 50px;
-      margin-left: auto;
+    }
+
+    .badge-new {
+      background: #eff6ff;
+      color: #2563eb;
+    }
+
+    .badge-process {
+      background: #fff7ed;
+      color: #ea580c;
+    }
+
+    .badge-done {
+      background: #f0fdf4;
+      color: #16a34a;
+    }
+
+    .btn-modern-primary {
+      background: var(--primary-orange);
+      color: white;
+      border: none;
+      padding: 11px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(249, 115, 22, 0.15);
+      text-decoration: none !important;
+    }
+
+    .btn-modern-primary:hover {
+      background: var(--primary-orange-hover);
+      transform: translateY(-1px);
+      color: white;
+    }
+
+    /* Tooltip */
+    .sidebar.collapsed .nav-link:hover::after {
+      content: attr(data-title);
+      position: absolute;
+      left: calc(100% + 15px);
+      top: 50%;
+      transform: translateY(-50%);
+      background: #0f172a;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      z-index: 2000;
+    }
+
+    @media (max-width: 992px) {
+      .sidebar {
+        transform: translateX(-100%);
+        width: var(--sidebar-width) !important;
+      }
+
+      .sidebar.active {
+        transform: translateX(0);
+      }
+
+      .main-content {
+        margin-left: 0 !important;
+        padding: 24px;
+      }
+
+      .mobile-toggle {
+        display: flex !important;
+      }
+    }
+
+    .mobile-toggle {
+      display: none;
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 2000;
+      background: white;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #e2e8f0;
+    }
+
+    .user-avatar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+      border: none;
     }
   </style>
+  {% block extra_head %}{% endblock %}
+</head>
+
+<body class="{{ 'sidebar-collapsed' if request.COOKIES.get('sidebar_collapsed') == 'true' else '' }}">
+
+  <button class="mobile-toggle" onclick="toggleSidebarMobile()"><i class="bi bi-list fs-4"></i></button>
+
+  {% if request.user.is_authenticated %}
+  <aside class="sidebar {{ 'collapsed' if request.COOKIES.get('sidebar_collapsed') == 'true' else '' }}" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-logo"><i class="bi bi-intersect"></i></div>
+      <span class="brand-name">ИС Проекты</span>
+    </div>
+
+    <div class="nav-container">
+      <div class="nav-label">Управление</div>
+      {% if user.role.name == 'employee' %}
+      <a href="/workspace" data-title="Рабочий стол"
+        class="nav-link {% if '/workspace' in request.path %}active{% endif %}">
+        <i class="bi bi-house-door-fill"></i><span>Рабочий стол</span>
+      </a>
+      {% endif %}
+      <a href="/projects" data-title="Проекты" class="nav-link {% if '/projects' in request.path %}active{% endif %}">
+        <i class="bi bi-grid-1x2-fill"></i><span>{% if user.role.name in ['head', 'pm'] %}Дашборд{% else %}Проекты{%
+          endif %}</span>
+      </a>
+      <a href="/tasks" data-title="Задачи" class="nav-link {% if '/tasks' in request.path %}active{% endif %}">
+        <i class="bi bi-check-square-fill"></i><span>Задачи</span>
+      </a>
+      <a href="/leads" data-title="Заявки" class="nav-link {% if '/leads' in request.path %}active{% endif %}">
+        <i class="bi bi-chat-square-quote-fill"></i><span>Заявки</span>
+      </a>
+      <a href="/notifications" data-title="События"
+        class="nav-link {% if '/notifications' in request.path %}active{% endif %}">
+        <i class="bi bi-lightning-charge-fill"></i><span>События</span>
+      </a>
+
+      {% if request.user.role.name in ['head', 'pm'] %}
+      <div class="nav-label" style="margin-top: 24px;">Люди</div>
+      <a href="/users" data-title="Команда" class="nav-link {% if '/users' in request.path %}active{% endif %}">
+        <i class="bi bi-people-fill"></i><span>Команда</span>
+      </a>
+      {% endif %}
+
+      <div class="nav-label" style="margin-top: 24px;">Аккаунт</div>
+      <a href="/profile" data-title="Профиль" class="nav-link {% if '/profile' in request.path %}active{% endif %}">
+        <i class="bi bi-person-circle"></i><span>Профиль</span>
+      </a>
+      <a href="/logout" data-title="Выйти" class="nav-link text-danger" style="margin-top: 20px;">
+        <i class="bi bi-box-arrow-left"></i><span>Выйти</span>
+      </a>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="collapse-btn" onclick="toggleSidebar()" title="Свернуть/Развернуть">
+        <i class="bi bi-chevron-left text-muted"></i>
+      </button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const body = document.body;
+      const isCollapsed = sidebar.classList.toggle('collapsed');
+      body.classList.toggle('sidebar-collapsed');
+      document.cookie = `sidebar_collapsed=${isCollapsed}; path=/; max-age=31536000`;
+
+      setTimeout(() => {
+        if (typeof Chart !== 'undefined') {
+          Object.values(Chart.instances).forEach(chart => chart.resize());
+        }
+      }, 350);
+    }
+    function toggleSidebarMobile() {
+      document.getElementById('sidebar').classList.toggle('active');
+    }
+  </script>
+  {% else %}
+  <div class="d-flex align-items-center justify-content-center bg-white"
+    style="min-height: 100vh; width: 100vw; position: fixed; top: 0; left: 0; z-index: 9999;">
+    {% block login_content %}{% endblock %}
+  </div>
+  {% endif %}
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>
